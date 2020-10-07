@@ -50,28 +50,8 @@ entity imaging_buffer is
 end entity imaging_buffer;
 
 architecture rtl of imaging_buffer is
-    --SWIR words are 64 bits (4 pixel per word)
-    component SWIR_ROW_FIFO port (
-		aclr		: in std_logic;
-		clock		: in std_logic;
-		data		: in std_logic_vector (127 downto 0);
-		rdreq		: in std_logic;
-		wrreq		: in std_logic;
-		empty		: out std_logic;
-		full		: out std_logic;
-		q		    : out std_logic_vector (127 downto 0));
-    end component SWIR_ROW_FIFO;
-    
+    --SWIR words are 64 bits (4 pixel per word) 
     --VNIR words are 160 bits (16 pixels per word)
-    component VNIR_ROW_FIFO port (
-        aclr		: in std_logic;
-        clock		: in std_logic;
-        data		: in std_logic_vector (127 downto 0);
-        rdreq		: in std_logic;
-        wrreq		: in std_logic;
-        empty		: out std_logic;
-        q		    : out std_logic_vector (127 downto 0));
-    end component VNIR_ROW_FIFO;
 
     signal fifo_clear           : std_logic;
 
@@ -116,7 +96,7 @@ begin
     --NOTE: The ip doesn't allow for choosing a FIFO with a depth of 160 words, so
     --the almost full signal is used in the full signal's place
     VNIR_FIFO_GEN : for i in 0 to NUM_VNIR_ROW_FIFO-1 generate
-        VNIR_FIFO : VNIR_ROW_FIFO port map (
+        VNIR_FIFO : entity work.VNIR_ROW_FIFO port map (
             aclr    => fifo_clear,
             clock   => clock,
             data    => vnir_link_in(i),
@@ -128,7 +108,7 @@ begin
     end generate VNIR_FIFO_GEN;
 
     SWIR_FIFO_GEN : for i in 0 to NUM_SWIR_ROW_FIFO-1 generate
-        SWIR_FIFO : SWIR_ROW_FIFO port map (
+        SWIR_FIFO : entity work.SWIR_ROW_FIFO port map (
             aclr    => fifo_clear,
             clock   => clock,
             data    => swir_link_in(i),
@@ -162,7 +142,8 @@ begin
             --First stage resets
             vnir_row_ready_i <= vnir.ROW_NONE;
             vnir_row_fragments <= (others => (others => '0'));
-            
+            -- vnir_row_fragments <= (others => '0');
+
             --Second stage resets
             row_type_buffer <= (others => vnir.ROW_NONE);
             vnir_frag_counter <= 0;
@@ -187,7 +168,7 @@ begin
                     for frag_array_bit in 0 to FIFO_WORD_LENGTH-1 loop
                         vnir_row_fragments(frag_array_index)(frag_array_bit) <= vnir_row(pixel_num)(pixel_bit);
 
-                        --Conditional logic for incrementing pixel and but info
+                        --Conditional logic for incrementing pixel and bit info
                         if (pixel_bit = vnir.PIXEL_BITS-1) then
                             pixel_bit := 0;
                             pixel_num := pixel_num + 1;
