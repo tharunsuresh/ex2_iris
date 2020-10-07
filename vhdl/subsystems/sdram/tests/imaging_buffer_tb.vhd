@@ -51,31 +51,11 @@ architecture sim of imaging_buffer_tb is
     signal swir_pxl_rdy         : std_logic := '0';
     signal vnir_row_rdy         : vnir.row_type_t := vnir.ROW_NONE;
 
-    component imaging_buffer is
-        port(
-        --Control Signals
-        clock               : in std_logic;
-        reset_n             : in std_logic;
 
-        --Rows of Data
-        vnir_row            : in vnir.row_t;
-        swir_pixel          : in swir_pixel_t;
-
-        --Rows out
-        fragment_out        : out row_fragment_t;
-        fragment_type       : out sdram.row_type_t;
-        row_request         : in std_logic;
-        transmitting        : out std_logic;
-
-        --Flag signals
-        swir_pixel_ready    : in std_logic;
-        vnir_row_ready      : in vnir.row_type_t
-        );
-    end component imaging_buffer;
 begin
     clock <= not clock after clock_period / 2;
 
-    imaging_buffer_component : imaging_buffer port map (
+    imaging_buffer_component : entity work.imaging_buffer port map (
         clock               => clock,
         reset_n             => reset_n,
         vnir_row            => vnir_row,
@@ -85,7 +65,8 @@ begin
         row_request         => row_req,
         transmitting        => transmitting_o,
         swir_pixel_ready    => swir_pxl_rdy,
-        vnir_row_ready      => vnir_row_rdy);
+        vnir_row_ready      => vnir_row_rdy
+		  );
 
     process is
     begin
