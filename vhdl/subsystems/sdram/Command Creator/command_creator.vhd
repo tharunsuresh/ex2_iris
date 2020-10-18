@@ -52,43 +52,7 @@ entity command_creator is
 end entity command_creator;
 
 architecture rtl of command_creator is
-    component DMA_write is
-        generic (
-            DATAWIDTH 				: natural := 128;
-            MAXBURSTCOUNT 			: natural := 128;
-            BURSTCOUNTWIDTH 		: natural := 8;
-            BYTEENABLEWIDTH 		: natural := 16;
-            ADDRESSWIDTH			: natural := 28;
-            FIFODEPTH				: natural := 128;
-            FIFODEPTH_LOG2 			: natural := 7;
-            FIFOUSEMEMORY 			: string := "ON"
-	    );
-        port (
-            clk 					: in std_logic;
-            reset 					: in std_logic;
-            
-            -- control inputs and outputs
-            control_fixed_location 	: in std_logic;
-            control_write_base 		: in std_logic_vector(ADDRESSWIDTH-1 downto 0);
-            control_write_length 	: in std_logic_vector(ADDRESSWIDTH-1 downto 0);
-            control_go 				: in std_logic;
-            control_done			: out std_logic;
-            
-            -- user logic inputs and outputs
-            user_write_buffer		: in std_logic;
-            user_buffer_data		: in std_logic_vector(DATAWIDTH-1 downto 0);
-            user_buffer_full		: out std_logic;
-            
-            -- master inputs and outputs
-            master_address 			: out std_logic_vector(ADDRESSWIDTH-1 downto 0);
-            master_write 			: out std_logic;
-            master_byteenable 		: out std_logic_vector(BYTEENABLEWIDTH-1 downto 0);
-            master_writedata 		: out std_logic_vector(DATAWIDTH-1 downto 0);
-            master_burstcount 		: out std_logic_vector(BURSTCOUNTWIDTH-1 downto 0);
-            master_waitrequest 		: in std_logic
-        );
-    end component;
-
+   
     signal write_length     : std_logic_vector(sdram.ADDRESS_LENGTH-1 downto 0);
     signal input_loaded     : std_logic;
     signal write_done       : std_logic;
@@ -97,7 +61,7 @@ architecture rtl of command_creator is
     signal buffer_full      : std_logic;
 
 begin
-    DMA_write_component : DMA_write 
+    DMA_write_component : entity work.DMA_write 
     generic map (
         DATAWIDTH 				=> FIFO_WORD_LENGTH,
         MAXBURSTCOUNT 			=> 128,
