@@ -10,6 +10,8 @@ venv/
 *.bak
 
 # Exclude Quartus files
+modelsim/
+quartus/
 db/
 incremental_db/
 output_files/

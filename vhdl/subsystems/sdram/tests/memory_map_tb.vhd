@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.spi_types.all;
-use work.avalonmm_types.all;
+-- use work.avalonmm_types.all;
 use work.vnir;
 use work.swir_types.all;
 use work.sdram.all;
@@ -35,40 +35,15 @@ architecture sim of memory_map_tb is
     signal number_vnir_rows    : natural := 0;
 
     --Ouput image row address config
-    signal next_row_type       : row_type_t := no_row;
+    signal next_row_type       : row_type_t := ROW_NONE;
     signal next_row_req        : std_logic := '0';
     signal output_address      : address_t;
 
     --Read data to be read from sdram due to mpu interaction
     signal sdram_error         : error_t := no_error;
 
-    component memory_map port(
-        --Control signals
-        clock               : in std_logic;
-        reset_n             : in std_logic;
-
-        --SDRAM config signals to and from the FPGA
-        config              : in config_to_sdram_t;
-        memory_state        : out memory_state_t;
-
-        start_config        : in std_logic;
-        config_done         : out std_logic;
-        img_config_done     : out std_logic;
-
-        --Image Config signals
-        number_swir_rows    : in natural;
-        number_vnir_rows    : in natural;
-
-        --Ouput image row address config
-        next_row_type       : in row_type_t;
-        next_row_req        : in std_logic;
-        output_address      : out address_t;
-
-        --Read data to be read from sdram due to mpu interaction
-        sdram_error         : out error_t);
-    end component;
 begin
-    memory_map_comp : memory_map port map (
+    memory_map_comp : entity work.memory_map port map (
         clock => clk,
         reset_n => reset_n,
         config => config,
@@ -114,7 +89,7 @@ begin
         next_row_req <= '0';
 
         --Additionally, next row type waiting is red, then waiting 10 clks for next_row_req as it transmits vnir header
-        next_row_type <= red_row;
+        next_row_type <= ROW_RED;
         wait for clk_period * 10;
         next_row_req <= '1';
 
@@ -128,14 +103,14 @@ begin
         --Output is now red row, blue row next
         next_row_req <= '1';
         wait for clk_period * 4;
-        next_row_type <= blue_row;
+        next_row_type <= ROW_BLUE;
         next_row_req <= '0';
         wait for clk_period * 10;
 
         --Output is now blue row, another red row next
         next_row_req <= '1';
         wait for clk_period * 3;
-        next_row_type <= red_row;
+        next_row_type <= ROW_RED;
         next_row_req <= '0';
         wait for clk_period * 10;
 
@@ -148,21 +123,21 @@ begin
         --Output is now red row, nir row next
         next_row_req <= '1';
         wait for clk_period * 3;
-        next_row_type <= nir_row;
+        next_row_type <= ROW_NIR;
         next_row_req <= '0';
         wait for clk_period * 10;
         
         --Output is now nir row, swir row next
         next_row_req <= '1';
         wait for clk_period * 3;
-        next_row_type <= swir_row;
+        next_row_type <= ROW_SWIR;
         next_row_req <= '0';
         wait for clk_period * 10;
         
         --Output is now swir row, blue row next
         next_row_req <= '1';
         wait for clk_period * 3;
-        next_row_type <= blue_row;
+        next_row_type <= ROW_BLUE;
         next_row_req <= '0';
         wait for clk_period * 10;
         
@@ -175,14 +150,14 @@ begin
         --Output is now blue row, swir row next
         next_row_req <= '1';
         wait for clk_period * 3;
-        next_row_type <= swir_row;
+        next_row_type <= ROW_SWIR;
         next_row_req <= '0';
         wait for clk_period * 10;
         
         --Output is now swir row, nir row next
         next_row_req <= '1';
         wait for clk_period * 3;
-        next_row_type <= nir_row;
+        next_row_type <= ROW_NIR;
         next_row_req <= '0';
         wait for clk_period * 10;
         

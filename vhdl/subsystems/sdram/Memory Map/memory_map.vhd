@@ -32,15 +32,15 @@ entity memory_map is
         reset_n             : in std_logic;
 
         --SDRAM config signals to and from the FPGA
-        config              : in config_to_sdram_t;
-        memory_state        : out memory_state_t;
+        config              : in config_to_sdram_t; -- start and end memory addresses available for FPGA
+        memory_state        : out memory_state_t;  -- start and end memory addresses for VNIR, SWIR, temp & their usage
 
-        start_config        : in std_logic;
+        start_config        : in std_logic;         
         config_done         : out std_logic;
         img_config_done     : out std_logic;
 
         --Image Config signals
-        number_swir_rows    : in integer;
+        number_swir_rows    : in integer;           
         number_vnir_rows    : in integer;
 
         --Ouput image row address config
@@ -484,7 +484,11 @@ begin
     start_nir_address  <= resize(vnir_img_start + HEADER_LENGTH + vnir_band_length * 2, ADDRESS_LENGTH); --Room for both blue and red
     start_swir_address <= swir_img_start + HEADER_LENGTH;
     
-    no_new_rows <= '1' when (next_blue_address = start_red_address and next_red_address = start_nir_address and next_nir_address = vnir_img_end and next_swir_address = swir_img_end) else '0';
+    no_new_rows <= '1' when (next_blue_address = start_red_address and 
+                              next_red_address = start_nir_address and 
+                              next_nir_address = vnir_img_end and 
+                              next_swir_address = swir_img_end) 
+                       else '0';
 
     with curr_row_type select row_assign_address <=
         next_swir_address when ROW_SWIR,
