@@ -19,7 +19,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.avalonmm;
+-- use work.avalonmm;
 use work.img_buffer_pkg.all;
 use work.swir_types.all;
 use work.sdram;
@@ -121,15 +121,58 @@ begin
         );
     end generate SWIR_FIFO_GEN;
 
-
-    
-   
-    swir: process (clock) is
+    pipeline : process (reset_n, clock) is
+        variable vnir_output_index  : integer := 0;
+        variable swir_output_index  : integer := 0;
+        
+        --Variables used to help calculate the pixels that need to be split up to store the data in the FIFO
+        variable pixel_num      : natural := 0;
+        variable pixel_bit      : natural := 0;
+            
     begin
-        if (rising_edge(clock) and (reset_n /= '0')) then
+        if (reset_n = '0') then
+            swir_bit_counter <= 0;
+            swir_fragment <= (others => '0');
+
+            swir_fragment_ready <= '0';
+            swir_store_counter <= 0;
+
+            swir_link_wrreq <= (others => '0');
+            swir_link_rdreq <= (others => '0');
+            swir_link_in <= (others => (others => '0'));
+            
+            --First stage resets
+            vnir_row_ready_i <= vnir.ROW_NONE;
+            vnir_row_fragments <= (others => (others => '0'));
+            -- vnir_row_fragments <= (others => '0');
+
+            --Second stage resets
+            row_type_buffer <= (others => vnir.ROW_NONE);
+            vnir_frag_counter <= 0;
+            vnir_store_counter <= 0;
+
+            --FIFO resets
+            vnir_link_in <= (others => (others => '0'));
+            vnir_link_rdreq <= (others => '0');
+            vnir_link_wrreq <= (others => '0');
+            
+            vnir_output_index := 0;
+            swir_output_index := 0;
+            transmitting_i <= '0';
+
+            fragment_out <= (others => '0');
+            fragment_type <= sdram.ROW_NONE;
+        
+        elsif rising_edge(clock) then
+          
+            
+
+
+
+        
             --The first stage of the swir_pipeline, accumulating pixels to fill a word
             if (swir_pixel_ready = '1') then
-
+        
                 if (swir_bit_counter = FIFO_WORD_LENGTH) then
                     swir_fragment_ready <= '1';
                     swir_bit_counter <= 0;
@@ -138,7 +181,7 @@ begin
                     swir_bit_counter <= swir_bit_counter + SWIR_PIXEL_BITS;
                 end if;
             end if;
-   
+        
             --The second stage of the swir pipeline, putting the fragment into the fifo chain
             if (swir_fragment_ready = '1') then
                 swir_link_wrreq(swir_store_counter) <= '1';
@@ -148,14 +191,50 @@ begin
                 swir_link_wrreq <= (others => '0');
                 swir_link_in <= (others => (others => '0'));
             end if;
-  
+        
             --Checking to see if a fifo is full and incrementing the store counter
             if (swir_fifo_full(swir_store_counter) = '1') then
                 swir_store_counter <= swir_store_counter + 1;
                 num_store_swir_rows <= num_store_swir_rows + 1;
             end if;
+            
+            --The final stage
+            vnir_output_index := vnir_store_counter - num_store_vnir_rows;
+            swir_output_index := swir_store_counter - num_store_swir_rows;
+        
+            if (row_request = '1') then
+                transmitting_i <= '1';
+            end if;
+        
+            if (transmitting_i = '1') then
+                --These first two branches set the output to the correct fifo
+                if (num_store_vnir_rows >= num_store_swir_rows and num_store_vnir_rows /= 0 and vnir_fifo_empty(vnir_output_index) = '0') then
+                    vnir_link_rdreq(vnir_output_index) <= '1';
+                    fragment_out <= vnir_link_out(vnir_output_index);
+                    fragment_type <= sdram.sdram_type(row_type_buffer(vnir_output_index));
+        
+                elsif (num_store_swir_rows > num_store_vnir_rows and swir_fifo_empty(swir_output_index) = '0') then
+                    swir_link_rdreq(swir_output_index) <= '1';
+                    fragment_out <= swir_link_out(swir_output_index);
+                    fragment_type <= sdram.ROW_SWIR;
+        
+                --These next two branches reset the output and increment the correct buffer
+                elsif (vnir_fifo_empty(vnir_output_index) = '1') then
+                    vnir_link_rdreq(vnir_output_index) <= '0';
+                    num_store_vnir_rows <= num_store_vnir_rows - 1;
+                    transmitting_i <= '0';
+        
+                elsif (swir_fifo_empty(swir_output_index) = '1') then
+                    swir_link_rdreq(swir_output_index) <= '0';
+                    num_store_swir_rows <= num_store_swir_rows - 1;
+                    transmitting_i <= '0';
+                end if;
+            else
+                fragment_out <= (others => '0');
+                fragment_type <= sdram.ROW_NONE;
+            end if;
         end if;
-    end process swir;
+    end process pipeline;
 
     
 
