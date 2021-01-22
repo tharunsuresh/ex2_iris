@@ -34,8 +34,8 @@ architecture sim of memory_map_tb is
     signal number_swir_rows    : natural := 0;
     signal number_vnir_rows    : natural := 0;
 
-    --Ouput image row address config
-    signal next_row_type       : row_type_t := no_row;
+    --Output image row address config
+    signal next_row_type       : row_type_t := ROW_NONE;
     signal next_row_req        : std_logic := '0';
     signal output_address      : address_t;
 

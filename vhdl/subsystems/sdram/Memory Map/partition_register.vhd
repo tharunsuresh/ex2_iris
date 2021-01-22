@@ -66,7 +66,7 @@ architecture rtl of partition_register is
         end if;
     end function check_full;
 begin
-    --Combinitorial process specifying signal assignments
+    --Combinatorial process specifying signal assignments
     state_process : process(state, add_length, sub_length, base, bounds, bounds_write) is
     begin
         case state is

@@ -64,6 +64,9 @@ library ieee;
 	use ieee.std_logic_1164.all;
 	use ieee.numeric_std.all;
 
+library altera_mf;
+	use altera_mf.all;
+
 entity DMA_write is
 	generic (
 		DATAWIDTH 				: natural := 128;

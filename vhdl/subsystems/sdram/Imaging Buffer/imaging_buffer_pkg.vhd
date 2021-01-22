@@ -22,8 +22,8 @@ use work.vnir;
 
 package img_buffer_pkg is
     --Generating 10 buffers for each, allowing for storage of up to 10 rows
-    constant NUM_SWIR_ROW_FIFO : integer := 10;
-    constant NUM_VNIR_ROW_FIFO : integer := 10;
+    constant NUM_SWIR_ROW_FIFO : integer := 1;
+    constant NUM_VNIR_ROW_FIFO : integer := 1;
 
     --Number of bits in swir and vnir fifo
     constant FIFO_WORD_LENGTH : integer := 128;

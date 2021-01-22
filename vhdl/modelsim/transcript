@@ -1,0 +1,5 @@
+# Reading C:/intelFPGA/17.0/modelsim_ae/tcl/vsim/pref.tcl
+# OpenFile C:/Users/tharu/Desktop/iris/ex2_iris/vhdl/modelsim/electra.mpf
+# Loading project electra
+# Error opening C:/src/albertasat/ex2_iris/vhdl/subsystems/vnir/base/pixel_integrator/fifo.vhd
+# Path name 'C:/src/albertasat/ex2_iris/vhdl/subsystems/vnir/base/pixel_integrator/fifo.vhd' doesn't exist.
