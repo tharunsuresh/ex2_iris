@@ -144,7 +144,6 @@ begin
             --First stage resets
             vnir_row_ready_i <= vnir.ROW_NONE;
             vnir_row_fragments <= (others => (others => '0'));
-            -- vnir_row_fragments <= (others => '0');
 
             --Second stage resets
             row_type_buffer <= (others => vnir.ROW_NONE);
@@ -164,11 +163,48 @@ begin
             fragment_type <= sdram.ROW_NONE;
         
         elsif rising_edge(clock) then
-          
-            
 
+            --The first stage of the vnir pipeline, storing data taken from the vnir system
+            if (vnir_row_ready /= vnir.ROW_NONE) then
+                vnir_row_ready_i <= vnir_row_ready;
+                for frag_array_index in 0 to VNIR_FIFO_DEPTH-1 loop
+                    for frag_array_bit in 0 to FIFO_WORD_LENGTH-1 loop
+                        vnir_row_fragments(frag_array_index)(frag_array_bit) <= vnir_row(pixel_num)(pixel_bit);
+                        --Conditional logic for incrementing pixel and bit info
+                        if (pixel_bit = vnir.PIXEL_BITS-1) then
+                            pixel_bit := 0;
+                            pixel_num := pixel_num + 1;
+                        else
+                            pixel_bit := pixel_bit + 1;
+                        end if;
+                    end loop;
+                    --Reseting the variables
+                    if (frag_array_index = VNIR_FIFO_DEPTH-1) then
+                        pixel_bit := 0;
+                        pixel_num := 0;
+                    end if;
+                end loop;
+            end if;
 
+            --Second stage of the VNIR pipeline, storing data into the fifo chain
+            if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_row_ready_i /= vnir.ROW_NONE) then
+                vnir_link_in(vnir_store_counter) <= vnir_row_fragments(vnir_frag_counter);
+                vnir_link_wrreq(vnir_store_counter) <= '1';
+                vnir_frag_counter <= vnir_frag_counter + 1;
 
+                --If it's the last word getting stored, adding the type to the type buffer
+                if (vnir_frag_counter = VNIR_FIFO_DEPTH-1) then
+                    row_type_buffer(vnir_store_counter) <= vnir_row_ready_i;
+                    vnir_row_ready_i <= vnir.ROW_NONE;
+                    vnir_store_counter <= vnir_store_counter + 1;
+                    num_store_vnir_rows <= num_store_vnir_rows + 1;
+                end if;
+
+            else
+                vnir_frag_counter <= 0;
+                vnir_link_in <= (others => (others => '0'));
+                vnir_link_wrreq <= (others => '0');
+            end if;
         
             --The first stage of the swir_pipeline, accumulating pixels to fill a word
             if (swir_pixel_ready = '1') then
