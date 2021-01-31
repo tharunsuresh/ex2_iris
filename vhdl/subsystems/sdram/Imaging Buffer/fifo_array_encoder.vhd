@@ -25,17 +25,29 @@ use work.vnir;
 entity fifo_array_encoder is
     port(
         vnir_row            : in vnir.row_t;
-        fifo_array          : out vnir_fifo_array
+        vnir_frag_counter   : in integer := 0;
+        vnir_row_fragment   : out row_fragment_t
     );
 end entity fifo_array_encoder;
 
 architecture rtl of fifo_array_encoder is
+    signal fifo_array: vnir_fifo_array;
 begin
-    fifo_array_generate: for j in 0 to VNIR_FIFO_DEPTH-1 generate
-        fifo_row_generate: for i in 0 to pixels_per_row-1 generate
+
+    --takes the entire input vnir row and converts to fifo rows of appropriate witdth and depth
+    array_generate: for j in 0 to VNIR_FIFO_DEPTH-1 generate
+        row_generate: for i in 0 to pixels_per_row-1 generate
             fifo_array(j)(i) <= std_logic_vector(vnir_row(i+j*pixels_per_row));
-        end generate fifo_row_generate;
-    end generate fifo_array_generate;
+        end generate row_generate;
+    end generate array_generate;
+
+    --convert the requested row into one std_logic_vector row suitable for input into fifo
+    fifo_row_generate: for i in 0 to pixels_per_row-1 generate
+        vnir_row_fragment((vnir.PIXEL_BITS*(i+1))-1 downto vnir.PIXEL_BITS*i) <= fifo_array(vnir_frag_counter)(i);
+    end generate fifo_row_generate;
+
+
+    
 
 end architecture;
 

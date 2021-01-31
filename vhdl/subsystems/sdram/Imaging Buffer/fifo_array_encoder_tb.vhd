@@ -33,14 +33,18 @@ end entity fifo_array_encoder_tb;
 architecture rtl of fifo_array_encoder_tb is
     
     signal vnir_row             : vnir.row_t := (others => "1111111111");
-    signal fifo_word            : vnir_fifo_row;
-    signal fifo_array           : vnir_fifo_array;
+    --signal fifo_word            : vnir_fifo_row;
+    --signal fifo_array           : vnir_fifo_array;
+    signal vnir_row_fragment   : row_fragment_t;
+    signal vnir_frag_counter   : integer := 0;
 
 begin
 
     inst: entity work.fifo_array_encoder port map(
         vnir_row        => vnir_row,
-        fifo_array      => fifo_array
+        --fifo_array      => fifo_array
+        vnir_row_fragment => vnir_row_fragment,
+        vnir_frag_counter => vnir_frag_counter
         );
 
     process is 
@@ -49,6 +53,8 @@ begin
         for i in 0 to 2047 loop
             vnir_row(i) <= to_unsigned(i, 10);
         end loop;
+        
+        vnir_frag_counter <= 0;
 
         wait; 
 

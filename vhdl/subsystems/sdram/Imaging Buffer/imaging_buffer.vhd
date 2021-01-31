@@ -58,7 +58,8 @@ architecture rtl of imaging_buffer is
 
     --signals for the first stage of the vnir pipeline
     signal vnir_row_ready_i     : vnir.row_type_t;
-    signal vnir_row_fragments   : vnir_row_fragment_a;
+    -- signal vnir_row_fragments   : vnir_row_fragment_a;
+    signal vnir_row_fragment    : row_fragment_t;
 
     --Signals for the first stage of the swir pipeline
     signal swir_bit_counter     : integer;
@@ -66,7 +67,7 @@ architecture rtl of imaging_buffer is
 
     --signals for the second stage of the vnir pipeline
     signal row_type_buffer      : row_type_buffer_a;
-    signal vnir_frag_counter    : integer;
+    signal vnir_frag_counter    : integer := 0;
     signal vnir_store_counter   : natural range 0 to NUM_VNIR_ROW_FIFO;
     signal num_store_vnir_rows  : natural range 0 to NUM_VNIR_ROW_FIFO;
 
@@ -120,15 +121,17 @@ begin
             q       => swir_link_out(i)
         );
     end generate SWIR_FIFO_GEN;
+    
+    array_enc_gen: entity work.fifo_array_encoder port map(
+        vnir_row            => vnir_row,
+        vnir_frag_counter   => vnir_frag_counter,
+        vnir_row_fragment   => vnir_row_fragment
+    );
 
     pipeline : process (reset_n, clock) is
         variable vnir_output_index  : integer := 0;
         variable swir_output_index  : integer := 0;
         
-        --Variables used to help calculate the pixels that need to be split up to store the data in the FIFO
-        variable pixel_num      : natural := 0;
-        variable pixel_bit      : natural := 0;
-            
     begin
         if (reset_n = '0') then
             swir_bit_counter <= 0;
@@ -143,7 +146,8 @@ begin
             
             --First stage resets
             vnir_row_ready_i <= vnir.ROW_NONE;
-            vnir_row_fragments <= (others => (others => '0'));
+            --vnir_row_fragments <= (others => (others => '0'));
+            vnir_row_fragment <= (others => '0');
 
             --Second stage resets
             row_type_buffer <= (others => vnir.ROW_NONE);
@@ -164,31 +168,15 @@ begin
         
         elsif rising_edge(clock) then
 
-            --The first stage of the vnir pipeline, storing data taken from the vnir system
+            --The first stage of the vnir pipeline, converting data taken from the vnir system into rows sizes 
+            --compatible with fifo width -> this is done by fifo_array_encoder.vhd
             if (vnir_row_ready /= vnir.ROW_NONE) then
                 vnir_row_ready_i <= vnir_row_ready;
-                for frag_array_index in 0 to VNIR_FIFO_DEPTH-1 loop
-                    for frag_array_bit in 0 to FIFO_WORD_LENGTH-1 loop
-                        vnir_row_fragments(frag_array_index)(frag_array_bit) <= vnir_row(pixel_num)(pixel_bit);
-                        --Conditional logic for incrementing pixel and bit info
-                        if (pixel_bit = vnir.PIXEL_BITS-1) then
-                            pixel_bit := 0;
-                            pixel_num := pixel_num + 1;
-                        else
-                            pixel_bit := pixel_bit + 1;
-                        end if;
-                    end loop;
-                    --Reseting the variables
-                    if (frag_array_index = VNIR_FIFO_DEPTH-1) then
-                        pixel_bit := 0;
-                        pixel_num := 0;
-                    end if;
-                end loop;
             end if;
 
             --Second stage of the VNIR pipeline, storing data into the fifo chain
             if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_row_ready_i /= vnir.ROW_NONE) then
-                vnir_link_in(vnir_store_counter) <= vnir_row_fragments(vnir_frag_counter);
+                vnir_link_in(vnir_store_counter) <= vnir_row_fragment;
                 vnir_link_wrreq(vnir_store_counter) <= '1';
                 vnir_frag_counter <= vnir_frag_counter + 1;
 
