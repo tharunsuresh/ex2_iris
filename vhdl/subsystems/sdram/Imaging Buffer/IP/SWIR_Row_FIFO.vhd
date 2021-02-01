@@ -104,7 +104,7 @@ BEGIN
 		lpm_showahead => "OFF",
 		lpm_type => "scfifo",
 		lpm_width => FIFO_WORD_LENGTH,
-		lpm_widthu => 8,
+		lpm_widthu => 6,
 		overflow_checking => "ON",
 		underflow_checking => "ON",
 		use_eab => "ON"
