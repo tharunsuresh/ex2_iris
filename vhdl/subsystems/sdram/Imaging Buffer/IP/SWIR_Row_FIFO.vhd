@@ -40,17 +40,20 @@ USE ieee.std_logic_1164.all;
 LIBRARY altera_mf;
 USE altera_mf.all;
 
+library work;
+use work.img_buffer_pkg.all;
+
 ENTITY SWIR_Row_FIFO IS
 	PORT
 	(
 		aclr		: IN STD_LOGIC ;
 		clock		: IN STD_LOGIC ;
-		data		: IN STD_LOGIC_VECTOR (127 DOWNTO 0);
+		data		: IN STD_LOGIC_VECTOR (FIFO_WORD_LENGTH-1 DOWNTO 0);
 		rdreq		: IN STD_LOGIC ;
 		wrreq		: IN STD_LOGIC ;
 		empty		: OUT STD_LOGIC ;
 		full		: OUT STD_LOGIC ;
-		q		: OUT STD_LOGIC_VECTOR (127 DOWNTO 0)
+		q		: OUT STD_LOGIC_VECTOR (FIFO_WORD_LENGTH-1 DOWNTO 0)
 	);
 END SWIR_Row_FIFO;
 
@@ -59,7 +62,7 @@ ARCHITECTURE SYN OF swir_row_fifo IS
 
 	SIGNAL sub_wire0	: STD_LOGIC ;
 	SIGNAL sub_wire1	: STD_LOGIC ;
-	SIGNAL sub_wire2	: STD_LOGIC_VECTOR (127 DOWNTO 0);
+	SIGNAL sub_wire2	: STD_LOGIC_VECTOR (FIFO_WORD_LENGTH-1 DOWNTO 0);
 
 
 
@@ -79,28 +82,28 @@ ARCHITECTURE SYN OF swir_row_fifo IS
 	PORT (
 			aclr	: IN STD_LOGIC ;
 			clock	: IN STD_LOGIC ;
-			data	: IN STD_LOGIC_VECTOR (127 DOWNTO 0);
+			data	: IN STD_LOGIC_VECTOR (FIFO_WORD_LENGTH-1 DOWNTO 0);
 			rdreq	: IN STD_LOGIC ;
 			wrreq	: IN STD_LOGIC ;
 			empty	: OUT STD_LOGIC ;
 			full	: OUT STD_LOGIC ;
-			q	: OUT STD_LOGIC_VECTOR (127 DOWNTO 0)
+			q		: OUT STD_LOGIC_VECTOR (FIFO_WORD_LENGTH-1 DOWNTO 0)
 	);
 	END COMPONENT;
 
 BEGIN
 	empty    <= sub_wire0;
 	full    <= sub_wire1;
-	q    <= sub_wire2(127 DOWNTO 0);
+	q    <= sub_wire2(FIFO_WORD_LENGTH-1 DOWNTO 0);
 
 	scfifo_component : scfifo
 	GENERIC MAP (
 		add_ram_output_register => "OFF",
 		intended_device_family => "Cyclone V",
-		lpm_numwords => 64,
+		lpm_numwords => SWIR_FIFO_DEPTH,
 		lpm_showahead => "OFF",
 		lpm_type => "scfifo",
-		lpm_width => 128,
+		lpm_width => FIFO_WORD_LENGTH,
 		lpm_widthu => 6,
 		overflow_checking => "ON",
 		underflow_checking => "ON",
@@ -169,10 +172,10 @@ END SYN;
 -- Retrieval info: CONSTANT: USE_EAB STRING "ON"
 -- Retrieval info: USED_PORT: aclr 0 0 0 0 INPUT NODEFVAL "aclr"
 -- Retrieval info: USED_PORT: clock 0 0 0 0 INPUT NODEFVAL "clock"
--- Retrieval info: USED_PORT: data 0 0 128 0 INPUT NODEFVAL "data[127..0]"
+-- Retrieval info: USED_PORT: data 0 0 128 0 INPUT NODEFVAL "data[FIFO_WORD_LENGTH-1..0]"
 -- Retrieval info: USED_PORT: empty 0 0 0 0 OUTPUT NODEFVAL "empty"
 -- Retrieval info: USED_PORT: full 0 0 0 0 OUTPUT NODEFVAL "full"
--- Retrieval info: USED_PORT: q 0 0 128 0 OUTPUT NODEFVAL "q[127..0]"
+-- Retrieval info: USED_PORT: q 0 0 128 0 OUTPUT NODEFVAL "q[FIFO_WORD_LENGTH-1..0]"
 -- Retrieval info: USED_PORT: rdreq 0 0 0 0 INPUT NODEFVAL "rdreq"
 -- Retrieval info: USED_PORT: wrreq 0 0 0 0 INPUT NODEFVAL "wrreq"
 -- Retrieval info: CONNECT: @aclr 0 0 0 0 aclr 0 0 0 0

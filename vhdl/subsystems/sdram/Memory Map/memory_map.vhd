@@ -43,7 +43,7 @@ entity memory_map is
         number_swir_rows    : in integer;           
         number_vnir_rows    : in integer;
 
-        --Ouput image row address config
+        --Output image row address config
         next_row_type       : in row_type_t;
         next_row_req        : in std_logic;
         output_address      : out address_t;

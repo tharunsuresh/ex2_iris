@@ -40,7 +40,7 @@ entity command_creator is
         row_data            : in row_fragment_t;
         address             : in sdram.address_t;
         next_row_req        : out std_logic;
-        row_done            : in std_logic;
+        -- row_done            : in std_logic;
 
         -- Flags for MPU interaction
         sdram_busy          : out std_logic;

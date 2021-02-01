@@ -121,7 +121,7 @@ begin
         wait until rising_edge(clock);
         row_req <= '0';
         
-        wait for clock_period * 1700;
+        wait;
 
 
 
