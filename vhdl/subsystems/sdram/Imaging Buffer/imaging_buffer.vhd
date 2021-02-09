@@ -19,7 +19,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
--- use work.avalonmm;
 use work.img_buffer_pkg.all;
 use work.swir_types.all;
 use work.sdram;

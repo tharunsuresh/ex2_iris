@@ -38,9 +38,10 @@ entity command_creator is
 
         --Rows
         row_data            : in row_fragment_t;
+        row_type            : in sdram.row_type_t;
         address             : in sdram.address_t;
+        buffer_transmitting : in std_logic;
         next_row_req        : out std_logic;
-        -- row_done            : in std_logic;
 
         -- Flags for MPU interaction
         sdram_busy          : out std_logic;
@@ -53,41 +54,139 @@ end entity command_creator;
 
 architecture rtl of command_creator is
    
-    signal write_length     : std_logic_vector(sdram.ADDRESS_LENGTH-1 downto 0);
-    signal input_loaded     : std_logic;
-    signal write_done       : std_logic;
-    signal write_to_buffer  : std_logic;
-    signal buffer_data      : std_logic_vector(FIFO_WORD_LENGTH-1 downto 0);
-    signal buffer_full      : std_logic;
+    -- master attributes
+    constant MAXBURSTCOUNT 		      :   integer   :=  64;     -- at most half of FIFODEPTH
+    constant BURSTCOUNTWIDTH 	      :   integer   :=  7;      -- log2(MAXBURSTCOUNT)+1
+    constant FIFODEPTH			      :   integer   :=  VNIR_FIFO_DEPTH+2;	-- must be at least twice MAXBURSTCOUNT in order to be efficient
+    constant FIFODEPTH_LOG2 		  :   integer   :=  8;      -- log2(FIFODEPTH)
+
+    signal reset                    : std_logic;
+    signal control_write_length     : std_logic_vector(sdram.ADDRESS_LENGTH-1 downto 0);
+    signal control_go               : std_logic;
+    signal control_done             : std_logic;
+    signal user_write_buffer        : std_logic;
+    signal user_buffer_data         : std_logic_vector(FIFO_WORD_LENGTH-1 downto 0);
+    signal user_buffer_full         : std_logic;
+    signal fifo_used_out            : unsigned(FIFODEPTH_LOG2-1 downto 0);
+
+	type state_type is (s0_reset, s1_empty, s2_buffer, s3_write);
+        signal state   : state_type;   -- Register to hold the current state
+
+        -- Attribute "safe" implements a safe state machine. 
+        -- It can recover from an illegal state (by returning to the reset state).
+        attribute syn_encoding : string;
+        attribute syn_encoding of state_type : type is "safe";
 
 begin
     DMA_write_component : entity work.DMA_write 
     generic map (
         DATAWIDTH 				=> FIFO_WORD_LENGTH,
-        MAXBURSTCOUNT 			=> 128,
-        BURSTCOUNTWIDTH 		=> 8,
-        BYTEENABLEWIDTH 		=> 8,
+        MAXBURSTCOUNT 			=> MAXBURSTCOUNT,
+        BURSTCOUNTWIDTH 		=> BURSTCOUNTWIDTH,
+        BYTEENABLEWIDTH 		=> FIFO_WORD_BYTES, 
         ADDRESSWIDTH			=> sdram.ADDRESS_LENGTH,
-        FIFODEPTH				=> 256,
-        FIFODEPTH_LOG2 			=> 8,
+        FIFODEPTH				=> FIFODEPTH,
+        FIFODEPTH_LOG2 			=> FIFODEPTH_LOG2,
         FIFOUSEMEMORY 			=> "ON"
     )
     port map (
         clk 					=> clock,
-        reset 					=> reset_n,
+        reset 					=> reset,
         control_fixed_location 	=> '0',
         control_write_base 		=> std_logic_vector(address),
-        control_write_length 	=> write_length,
-        control_go 				=> input_loaded,
-        control_done			=> write_done,
-        user_write_buffer		=> write_to_buffer,
-        user_buffer_data		=> buffer_data,
-        user_buffer_full		=> buffer_full,
+        control_write_length 	=> control_write_length,
+        control_go 				=> control_go,
+        control_done			=> control_done,
+        user_write_buffer		=> user_write_buffer,
+        user_buffer_data		=> user_buffer_data,
+        user_buffer_full		=> user_buffer_full,
         master_address 			=> sdram_avalon_out.address,
         master_write 			=> sdram_avalon_out.write_cmd,
         master_byteenable 		=> sdram_avalon_out.byte_enable,
         master_writedata 		=> sdram_avalon_out.write_data,
         master_burstcount 		=> sdram_avalon_out.burst_count,
-        master_waitrequest 		=> sdram_avalon_in.wait_request
+        master_waitrequest 		=> sdram_avalon_in.wait_request,
+        fifo_used_out			=> fifo_used_out
     );
+
+    process (reset_n, clock) is
+    begin
+        if (reset_n = '0') then
+            state <= s0_reset;
+        elsif rising_edge(clock) then
+			case state is
+				when s0_reset =>
+					if reset_n = '1' then
+						state <= s1_empty;
+					else
+						state <= s0_reset;
+					end if;
+				when s1_empty =>  
+					if buffer_transmitting = '1' then --if rows are coming in, start buffering them
+						state <= s2_buffer;
+					else
+						state <= s1_empty;
+					end if;
+				when s2_buffer =>
+					if (buffer_transmitting = '0' or user_buffer_full = '1') then 
+						state <= s3_write;
+					else
+						state <= s2_buffer;
+                    end if;
+                when s3_write => 
+                    if fifo_used_out = 0 then  --if empty after writing, go to empty state
+                        state <= s1_empty;
+                    else
+                        state <= s3_write;
+                    end if;
+			end case;
+        end if;
+    end process;
+    
+	process (state, clock) is
+	begin
+		case state is
+			when s0_reset =>
+                --outputs 
+                next_row_req         <= '0';
+                sdram_busy           <= '0';
+                
+                --signals to master
+                control_go           <= '0';
+                user_write_buffer    <= '0';
+                user_buffer_data     <= (others => '0');
+
+            when s1_empty =>
+            
+                next_row_req         <= '1';
+                sdram_busy           <= '0';
+
+                control_go           <= '0';
+                user_write_buffer    <= '0';
+                user_buffer_data     <= (others => '0');
+
+            when s2_buffer =>
+
+                next_row_req         <= '1';
+                sdram_busy           <= '0';
+
+                control_go           <= '0';
+                user_write_buffer    <= '1';
+                user_buffer_data     <= row_data;
+
+            when s3_write =>
+    
+                next_row_req         <= '0';
+                sdram_busy           <= '1';
+
+                control_go           <= control_done;
+                user_write_buffer    <= '0';
+                user_buffer_data     <= (others => '0');
+
+		end case;
+	end process;
+
+    reset <= NOT reset_n; --reset for DMA_write
+    control_write_length <= std_logic_vector(to_unsigned(FIFO_WORD_BYTES, sdram.ADDRESS_LENGTH));    
+                
 end architecture;

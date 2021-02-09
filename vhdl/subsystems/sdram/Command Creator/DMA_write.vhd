@@ -27,7 +27,7 @@
 --		control_write_base (i/p): 		Word aligned byte address where the master will begin transferring data
 -- 		control_write_length (i/p): 	Number of bytes to transfer. This number must be a multiple of the
 --											data width in bytes (e.g. 32 bit data requires a multiple of 4)
---		control_go (o/p): 				One clock cycle strobe that instructs the master to begin transferring.
+--		control_go (i/p): 				One clock cycle strobe that instructs the master to begin transferring.
 --											The fixed_location, base, and length values are registered on this clock cycle
 --		control_done (o/p): 			Asserted and held when the master has transferred the last word of data.
 --											This occurs when the last write transfer completes or the last pending read returns.
@@ -100,7 +100,10 @@ entity DMA_write is
 		master_byteenable 		: out std_logic_vector(BYTEENABLEWIDTH-1 downto 0);
 		master_writedata 		: out std_logic_vector(DATAWIDTH-1 downto 0);
 		master_burstcount 		: out std_logic_vector(BURSTCOUNTWIDTH-1 downto 0);
-		master_waitrequest 		: in std_logic
+		master_waitrequest 		: in std_logic;
+
+		--fifo used
+		fifo_used_out			: out unsigned(FIFODEPTH_LOG2-1 downto 0)
 	);
 end DMA_write;
 
@@ -118,7 +121,7 @@ architecture main of DMA_write is
 	signal full_burst_ready				: std_logic;										-- when there is enough data in the FIFO for a full burst
 	signal increment_address			: std_logic;										-- this increments the 'address' register when write is asserted and waitrequest is de-asserted
 	signal burst_begin					: std_logic;										-- used to register the registers 'burst_address' and 'burst_count_d1' as well as drive the master_address and burst_count muxes
-	signal read_fifo					: std_logic;
+	signal read_fifo					: std_logic := '0';
 	signal fifo_used					: unsigned(FIFODEPTH_LOG2-1 downto 0);				-- going to combined used with the full bit
 	signal burst_count					: unsigned(BURSTCOUNTWIDTH-1 downto 0);				-- watermark of the FIFO, it has a latency of 2 cycles
 	signal burst_counter				: unsigned(BURSTCOUNTWIDTH-1 downto 0);
@@ -134,8 +137,6 @@ architecture main of DMA_write is
 	signal master_burstcount_reg					: unsigned(BURSTCOUNTWIDTH-1 downto 0);
 	signal master_write_reg							: std_logic;
 	signal control_done_reg							: std_logic;
-	
-	signal test										: unsigned(3 downto 0) := (others=>'0');
 	
 	component scfifo
 	generic (
@@ -177,6 +178,7 @@ begin
 	SDRAM_fifo: component scfifo
 	generic map(
 		add_ram_output_register			=> "OFF",
+		intended_device_family 			=> "Cyclone V",
 		almost_full_value				=> (FIFODEPTH - 2),
 		lpm_numwords					=> FIFODEPTH,
 		lpm_showahead					=> "ON",
@@ -375,6 +377,8 @@ begin
 	-- writing is occuring without wait states
 	increment_address <= '1' when (master_write_reg = '1') and (master_waitrequest = '0') else '0';
 	read_fifo <= increment_address;
-	
+
+	-- output fifo_used for command creator
+	fifo_used_out <= fifo_used;
 	
 end main;

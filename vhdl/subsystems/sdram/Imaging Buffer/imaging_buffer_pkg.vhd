@@ -29,11 +29,12 @@ package img_buffer_pkg is
     --chosen to be 80 because it can fill whole multiples of vnir and swir pixels (10 and 16 bits respectively)
     --this is the lpm_numwords parameter for scfifo. usually must be 2^x but I think this is fine when not using the 
     --usedw port
-    constant FIFO_WORD_LENGTH : integer := 80;  
+    constant FIFO_WORD_LENGTH : integer := 128;  
+    constant FIFO_WORD_BYTES : integer := FIFO_WORD_LENGTH/8; 
 
     --Number of words in swir and vnir fifo
-    constant VNIR_FIFO_DEPTH : integer := 256;
-    constant SWIR_FIFO_DEPTH : integer := 64;
+    constant VNIR_FIFO_DEPTH : integer := 160;  
+    constant SWIR_FIFO_DEPTH : integer := 64;   
 
     --imaging buffer vnir fifo words (pipeline stage 1)
     constant pixels_per_row   : integer := FIFO_WORD_LENGTH/vnir.PIXEL_BITS; --80/10 = 8
@@ -53,6 +54,4 @@ package img_buffer_pkg is
     type swir_row_fragment_a is array (0 to SWIR_FIFO_DEPTH-1) of row_fragment_t;
 
     type row_type_buffer_a is array (0 to NUM_VNIR_ROW_FIFO-1) of vnir.row_type_t;
-
-    
 end package img_buffer_pkg;

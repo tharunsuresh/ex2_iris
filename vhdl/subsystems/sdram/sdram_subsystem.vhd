@@ -67,6 +67,7 @@ architecture rtl of sdram_subsystem is
     --imaging_buffer <==> command_creator
     signal row_frag     : row_fragment_t;
     signal next_row_req : std_logic;
+    signal transmitting : std_logic;
 
     --imaging_buffer <==> memory_map
     signal next_row_type : sdram.row_type_t;
@@ -86,6 +87,7 @@ begin
         fragment_out        => row_frag,
         fragment_type       => next_row_type,
         row_request         => next_row_req,
+        transmitting        => transmitting,
         swir_pixel_ready    => swir_pxl_available,
         vnir_row_ready      => vnir_row_available
     );
@@ -112,7 +114,9 @@ begin
         vnir_img_header     => vnir_header,
         swir_img_header     => swir_header,
         row_data            => row_frag,
+        row_type            => next_row_type,
         address             => address,
+        buffer_transmitting => transmitting,
         next_row_req        => next_row_req,
         sdram_busy          => sdram_busy,
         sdram_avalon_out    => sdram_avalon_out,
