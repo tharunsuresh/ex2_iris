@@ -14,6 +14,11 @@
 -- limitations under the License.
 ----------------------------------------------------------------
 
+--TODO: 
+-- 1) address doesn't change for different rows. overwrites in sdram? 
+        -- possible fix, 1 continuous burst of length FIFO_DEPTH
+-- 2) buffer appropriate header for image in fifo row #1 and then the image rows
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -55,10 +60,10 @@ end entity command_creator;
 architecture rtl of command_creator is
    
     -- master attributes
-    constant MAXBURSTCOUNT 		      :   integer   :=  64;     -- at most half of FIFODEPTH
-    constant BURSTCOUNTWIDTH 	      :   integer   :=  7;      -- log2(MAXBURSTCOUNT)+1
-    constant FIFODEPTH			      :   integer   :=  VNIR_FIFO_DEPTH+2;	-- must be at least twice MAXBURSTCOUNT in order to be efficient
-    constant FIFODEPTH_LOG2 		  :   integer   :=  8;      -- log2(FIFODEPTH)
+    constant MAXBURSTCOUNT 		      :   integer   :=  256;     -- at most half of FIFODEPTH
+    constant BURSTCOUNTWIDTH 	      :   integer   :=  9;      -- log2(MAXBURSTCOUNT)+1
+    constant FIFODEPTH			      :   integer   :=  512;	-- must be at least twice MAXBURSTCOUNT in order to be efficient
+    constant FIFODEPTH_LOG2 		  :   integer   :=  9;      -- log2(FIFODEPTH)
 
     signal reset                    : std_logic;
     signal control_write_length     : std_logic_vector(sdram.ADDRESS_LENGTH-1 downto 0);
@@ -128,7 +133,7 @@ begin
 						state <= s1_empty;
 					end if;
 				when s2_buffer =>
-					if (buffer_transmitting = '0' or user_buffer_full = '1') then 
+					if buffer_transmitting = '0' then --when rows stop coming in, go to write state
 						state <= s3_write;
 					else
 						state <= s2_buffer;

@@ -65,7 +65,7 @@ begin
         row_data <= (others => '0');
         buffer_transmitting <= '0';
         if next_row_req = '1' then
-            for i in 0 to SWIR_FIFO_DEPTH loop
+            for i in 1 to VNIR_FIFO_DEPTH loop
                 buffer_transmitting <= next_row_req;
                 row_data            <= std_logic_vector(to_unsigned(i, FIFO_WORD_LENGTH));
                 wait for 20 ns;

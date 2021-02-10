@@ -26,7 +26,7 @@ package avalonmm is
 
     type from_master_t is record
         address     : std_logic_vector(sdram.ADDRESS_LENGTH-1 downto 0);
-        burst_count : std_logic_vector(6 downto 0);
+        burst_count : std_logic_vector(8 downto 0);
         write_data  : std_logic_vector(img_buffer_pkg.FIFO_WORD_LENGTH-1 downto 0);
         byte_enable : std_logic_vector(img_buffer_pkg.FIFO_WORD_BYTES-1 downto 0); --9 downto 0 if 80 --15 downto 0 if 128
         write_cmd   : std_logic;
