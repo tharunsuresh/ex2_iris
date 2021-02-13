@@ -24,7 +24,7 @@ use work.vnir;
 
 entity fifo_array_encoder is
     port(
-        --clock               : in std_logic;
+        clock               : in std_logic;
         --reset_n             : in std_logic;
         vnir_row            : in vnir.row_t;
         num_bit             : in natural;
@@ -34,38 +34,51 @@ entity fifo_array_encoder is
 end entity fifo_array_encoder;
 
 architecture rtl of fifo_array_encoder is
-    
+    signal final_pixel : natural := 0;
+    signal final_bit   : natural := 0;
+
+
 begin
 
-    initial_start_pixel <= num_pixel;
-    middle_start_pixel  <= num_pixel + 1;
-    final_start_pixel   <= num_pixel + PIXELS_PER_ROW + 1;
+    process (clock) is
+            --Variables used to help calculate the pixels that need to be split up to store the data in the FIFO
+    variable pixel_num      : natural := 0;
+    variable pixel_bit      : natural := 0;        
 
-    initial_start_bit   <= num_bit;
-    final_end_bit       <= vnir.PIXEL_BITS ;    
 
-    process is
     begin
-        if num_bit = 0 then
-            for 
-                vnir_row_fragment( downto )
+        --for frag_array_index in 0 to VNIR_FIFO_DEPTH-1 loop
+
+        if rising_edge(clock) then
+            pixel_num := num_pixel;
+            pixel_bit := num_bit;
+            
+            for i in 0 to FIFO_WORD_LENGTH-1 loop
+                vnir_row_fragment(i) <= vnir_row(pixel_num)(pixel_bit);
+
+                if (pixel_bit = vnir.PIXEL_BITS-1) then
+                    pixel_bit := 0;
+                    if (pixel_num = vnir.ROW_WIDTH-1) then
+                        pixel_num := 0;
+                        --set flag to end loop
+                    else 
+                        pixel_num := pixel_num + 1;
+                    end if;
+                else
+                    pixel_bit := pixel_bit + 1;
+                end if;
             end loop;
 
+            final_pixel <= pixel_num;
+            final_bit  <= pixel_bit;        
 
-        elsif num_bit = 2 or num_bit = 4 or num_bit = 6 then
+        end if;    
+
+        --Conditional logic for incrementing pixel and but info
 
 
 
-        elsif num_bit = 8 then
-
-
-
-        else
-            vnir_row_fragment <= (others => 'X'); --invalid input
-        end if;
-
+        --end loop;
     end process;
-
-
 
 end architecture;

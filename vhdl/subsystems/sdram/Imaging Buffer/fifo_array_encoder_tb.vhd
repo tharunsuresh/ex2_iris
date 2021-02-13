@@ -32,7 +32,7 @@ end entity fifo_array_encoder_tb;
 
 architecture rtl of fifo_array_encoder_tb is
 
-    --signal clock                : std_logic := '0'; 
+    signal clock                : std_logic := '0'; 
     --signal reset_n              : std_logic := '0'; 
 
     signal vnir_row             : vnir.row_t := (others => "1111111111");
@@ -43,7 +43,7 @@ architecture rtl of fifo_array_encoder_tb is
 begin
 
     inst: entity work.fifo_array_encoder port map(
-        --clock           => clock,
+        clock           => clock,
         --reset_n         => reset_n,
         vnir_row        => vnir_row,
         num_bit         => num_bit,
@@ -51,7 +51,7 @@ begin
         vnir_row_fragment => vnir_row_fragment
         );
 
-    --clock <= NOT clock after 10 ns; 
+    clock <= NOT clock after 10 ns; 
     num_bit     <= 0;
     num_pixel   <= 0;
 
