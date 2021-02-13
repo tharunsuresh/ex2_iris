@@ -19,16 +19,13 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.vnir;
+use work.vnir_base;
 
 package img_buffer_pkg is
-    --Generating 10 buffers for each, allowing for storage of up to 10 rows
+    --Generating 1 buffers for each, allowing for storage of up to 1 row
     constant NUM_SWIR_ROW_FIFO : integer := 1;
     constant NUM_VNIR_ROW_FIFO : integer := 1;
 
-    --Number of bits in swir and vnir fifo
-    --chosen to be 80 because it can fill whole multiples of vnir and swir pixels (10 and 16 bits respectively)
-    --this is the lpm_numwords parameter for scfifo. usually must be 2^x but I think this is fine when not using the 
-    --usedw port
     constant FIFO_WORD_LENGTH : integer := 128;  
     constant FIFO_WORD_BYTES : integer := FIFO_WORD_LENGTH/8; 
 
@@ -37,11 +34,13 @@ package img_buffer_pkg is
     constant SWIR_FIFO_DEPTH : integer := 64;   
 
     --imaging buffer vnir fifo words (pipeline stage 1)
-    constant pixels_per_row   : integer := FIFO_WORD_LENGTH/vnir.PIXEL_BITS; --80/10 = 8
+    constant PIXELS_PER_ROW   : integer := FIFO_WORD_LENGTH/vnir.PIXEL_BITS; 
 
     subtype vnir_fifo_pixel is std_logic_vector(vnir.PIXEL_BITS-1 downto 0);
-    type vnir_fifo_row is array (0 to pixels_per_row-1) of vnir_fifo_pixel;
+    type vnir_fifo_row is array (0 to PIXELS_PER_ROW-1) of vnir_fifo_pixel;
     type vnir_fifo_array is array (0 to VNIR_FIFO_DEPTH-1) of vnir_fifo_row;
+    
+    subtype vnir_fifo_a is vnir_base.pixel_vector_t(VNIR_FIFO_DEPTH-1 downto 0)(FIFO_WORD_LENGTH-1 downto 0);
 
     --vnir & swir row fragments are split into their respective FIFO word lengths
     subtype row_fragment_t is std_logic_vector (FIFO_WORD_LENGTH-1 downto 0);

@@ -31,31 +31,37 @@ entity fifo_array_encoder_tb is
 end entity fifo_array_encoder_tb;
 
 architecture rtl of fifo_array_encoder_tb is
-    
-    signal vnir_row             : vnir.row_t := (others => "1111111111");
-    --signal fifo_word            : vnir_fifo_row;
-    --signal fifo_array           : vnir_fifo_array;
-    signal vnir_row_fragment   : row_fragment_t;
-    signal vnir_frag_counter   : integer := 0;
 
+    --signal clock                : std_logic := '0'; 
+    --signal reset_n              : std_logic := '0'; 
+
+    signal vnir_row             : vnir.row_t := (others => "1111111111");
+    signal vnir_row_fragment    : row_fragment_t;
+    signal num_bit              : natural;
+    signal num_pixel            : natural;
+ 
 begin
 
     inst: entity work.fifo_array_encoder port map(
+        --clock           => clock,
+        --reset_n         => reset_n,
         vnir_row        => vnir_row,
-        --fifo_array      => fifo_array
-        vnir_row_fragment => vnir_row_fragment,
-        vnir_frag_counter => vnir_frag_counter
+        num_bit         => num_bit,
+        num_pixel       => num_pixel,
+        vnir_row_fragment => vnir_row_fragment
         );
+
+    --clock <= NOT clock after 10 ns; 
+    num_bit     <= 0;
+    num_pixel   <= 0;
 
     process is 
     begin
 
-        for i in 0 to 2047 loop
-            vnir_row(i) <= to_unsigned(i, 10);
+        for i in 0 to vnir.ROW_WIDTH-1 loop
+            vnir_row(i) <= to_unsigned(i, vnir.PIXEL_BITS);
         end loop;
         
-        vnir_frag_counter <= 0;
-
         wait; 
 
     end process;
