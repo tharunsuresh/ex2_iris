@@ -1,0 +1,12 @@
+# File names are either absolute or relative to the parent folder of the vhdl_ls.toml file
+[libraries]
+electra.files = [
+  'vhdl/*.vhd',
+  'vhdl/*/*.vhd',
+  'vhdl/*/*/*.vhd',
+  'vhdl/*/*/*/*.vhd',
+  'vhdl/*/*/*/*/*.vhd',
+]
+
+'C:/intelFPGA/17.0/ip/altera/*/*.vhd',
+'C:/intelFPGA/17.0/ip/altera/*.vhd',
