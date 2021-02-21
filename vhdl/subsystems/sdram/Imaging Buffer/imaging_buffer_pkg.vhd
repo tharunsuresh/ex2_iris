@@ -22,7 +22,7 @@ use work.vnir;
 use work.vnir_base;
 
 package img_buffer_pkg is
-    --Generating 1 buffers for each, allowing for storage of up to 1 row
+    --Generating 1 buffer for each, allowing for storage of up to 1 row
     constant NUM_SWIR_ROW_FIFO : integer := 1;
     constant NUM_VNIR_ROW_FIFO : integer := 1;
 

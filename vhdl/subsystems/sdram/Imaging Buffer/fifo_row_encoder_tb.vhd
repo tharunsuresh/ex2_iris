@@ -27,10 +27,10 @@ use work.fpga_types.all;
 use work.vnir;
 use work.vnir."/=";
 
-entity fifo_array_encoder_tb is
-end entity fifo_array_encoder_tb;
+entity fifo_row_encoder_tb is
+end entity fifo_row_encoder_tb;
 
-architecture rtl of fifo_array_encoder_tb is
+architecture rtl of fifo_row_encoder_tb is
 
     signal clock                : std_logic := '0'; 
     signal reset_n              : std_logic := '0'; 
@@ -42,7 +42,7 @@ architecture rtl of fifo_array_encoder_tb is
  
 begin
 
-    inst: entity work.fifo_array_encoder port map(
+    inst: entity work.fifo_row_encoder port map(
         clock           => clock,
         reset_n         => reset_n,
         vnir_row        => vnir_row,

@@ -55,7 +55,7 @@ architecture sim of imaging_buffer_tb is
 begin
     clock <= not clock after clock_period / 2;
 
-    imaging_buffer_component : entity work.imaging_buffer port map (
+    imaging_buffer : entity work.imaging_buffer port map (
         clock               => clock,
         reset_n             => reset_n,
         vnir_row            => vnir_row,

@@ -27,23 +27,27 @@ use work.vnir;
 -- FIFO_WORD_LENGTH = 128, vnir.PIXEL_BITS = 10 
 -- WARNING: Breaks if any of the assumptions are changed.
 
-entity fifo_array_encoder is
+entity fifo_row_encoder is
     port(
         clock               : in std_logic;
         reset_n             : in std_logic;
         vnir_row            : in vnir.row_t;
         vnir_row_fragment   : out row_fragment_t
     );
-end entity fifo_array_encoder;
+end entity fifo_row_encoder;
 
-architecture rtl of fifo_array_encoder is
+architecture rtl of fifo_row_encoder is
 
     signal start_pixel    : natural := 0;
     signal start_bit      : natural := 0;
 
 begin
+
+-- NEXT STEP: MERGE IMAGING BUFFER AND THIS FILE. MAKE THEM WORK TOGETHER
+-- IDEA: when vnir_row comes in, register it with an internal variable
+-- when final word is sent to imaging buffer, then register the next row
     
-    proc_row_collect: process (clock) is
+    proc_row_collect: process (reset_n, clock) is
     begin
         if reset_n = '0' then
             vnir_row_fragment <= (others => '0');
@@ -68,7 +72,7 @@ begin
                     vnir_row_fragment((10*(i+1))+7 downto 10*i+8) <= std_logic_vector(vnir_row(start_pixel+i+1));
                 end loop;          
             
-            -- the last three cases are the same but the loop boundaries differ. 
+            -- the last three cases are similar but the loop boundaries differ. 
             -- Quartus doesn't synthesize with dynamic loop lengths 
             elsif start_bit = 4 then 
                 for i in 0 to 5 loop
@@ -110,7 +114,7 @@ begin
         end if;
     end process proc_row_collect;
     
-    proc_index: process (clock) is
+    proc_index: process (reset_n, clock) is
         --Variables used to help calculate the pixels and bit indices
         variable pixel_num      : natural := 0;
         variable pixel_bit      : natural := 0;        

@@ -57,10 +57,8 @@ architecture rtl of imaging_buffer is
 
     --signals for the first stage of the vnir pipeline
     signal vnir_row_ready_i     : vnir.row_type_t;
-    -- signal vnir_row_fragments   : vnir_row_fragment_a;
     signal vnir_row_fragment    : row_fragment_t;
     signal vnir_row_i           : vnir.row_t; 
-    signal fifo_array           : vnir_fifo_array;
 
     --Signals for the first stage of the swir pipeline
     signal swir_bit_counter     : integer;
@@ -123,12 +121,12 @@ begin
         );
     end generate SWIR_FIFO_GEN;
     
-    --takes the entire input vnir row and converts to fifo rows of appropriate width and depth
-    array_generate: for j in 0 to VNIR_FIFO_DEPTH-1 generate
-        row_generate: for i in 0 to pixels_per_row-1 generate
-            fifo_array(j)(i) <= std_logic_vector(vnir_row_i(i+j*pixels_per_row));
-        end generate row_generate;
-    end generate array_generate;
+    row_encoder_inst: entity work.fifo_row_encoder port map(
+        clock           => clock,
+        reset_n         => reset_n,
+        vnir_row        => vnir_row_i,
+        vnir_row_fragment => vnir_row_fragment
+        );
 
     pipeline : process (reset_n, clock) is
         variable vnir_output_index  : integer := 0;
@@ -148,8 +146,6 @@ begin
             
             --First stage resets
             vnir_row_ready_i <= vnir.ROW_NONE;
-            --vnir_row_fragments <= (others => (others => '0'));
-            vnir_row_fragment <= (others => '0');
 
             --Second stage resets
             row_type_buffer <= (others => vnir.ROW_NONE);
@@ -170,8 +166,8 @@ begin
         
         elsif rising_edge(clock) then
 
-            --The first stage of the vnir pipeline, converting data taken from the vnir system into rows sizes 
-            --compatible with fifo width -> this is done by array_generate
+            --The first stage of the vnir pipeline, converting data taken from the vnir system into word sizes 
+            --compatible with fifo width -> this is done by fifo_array_encoder.vhd
             if (vnir_row_ready /= vnir.ROW_NONE) then
                 vnir_row_ready_i <= vnir_row_ready;
                 vnir_row_i <= vnir_row;
@@ -179,9 +175,6 @@ begin
 
             --Second stage of the VNIR pipeline, storing data into the fifo chain
             if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_row_ready_i /= vnir.ROW_NONE) then
-                for i in 0 to pixels_per_row-1 loop
-                    vnir_row_fragment((vnir.PIXEL_BITS*(i+1))-1 downto vnir.PIXEL_BITS*i) <= fifo_array(vnir_frag_counter)(i);
-                end loop;
                 vnir_link_in(vnir_store_counter) <= vnir_row_fragment;
                 vnir_link_wrreq(vnir_store_counter) <= '1';
                 vnir_frag_counter <= vnir_frag_counter + 1;
