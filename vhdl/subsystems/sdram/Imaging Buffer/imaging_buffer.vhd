@@ -58,7 +58,7 @@ architecture rtl of imaging_buffer is
     --signals for the first stage of the vnir pipeline
     signal vnir_row_ready_i     : vnir.row_type_t;
     signal vnir_row_fragment    : row_fragment_t;
-    signal vnir_row_i           : vnir.row_t; 
+    --signal vnir_row_i           : vnir.row_t; 
 
     --Signals for the first stage of the swir pipeline
     signal swir_bit_counter     : integer;
@@ -124,7 +124,8 @@ begin
     row_encoder_inst: entity work.fifo_row_encoder port map(
         clock           => clock,
         reset_n         => reset_n,
-        vnir_row        => vnir_row_i,
+        vnir_row        => vnir_row,
+        vnir_row_ready  => vnir_row_ready,
         vnir_row_fragment => vnir_row_fragment
         );
 
@@ -167,10 +168,10 @@ begin
         elsif rising_edge(clock) then
 
             --The first stage of the vnir pipeline, converting data taken from the vnir system into word sizes 
-            --compatible with fifo width -> this is done by fifo_array_encoder.vhd
+            --compatible with fifo width -> this is done by fifo_row_encoder.vhd
             if (vnir_row_ready /= vnir.ROW_NONE) then
                 vnir_row_ready_i <= vnir_row_ready;
-                vnir_row_i <= vnir_row;
+                -- vnir_row_i <= vnir_row;
             end if;
 
             --Second stage of the VNIR pipeline, storing data into the fifo chain

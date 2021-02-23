@@ -27,20 +27,11 @@ package img_buffer_pkg is
     constant NUM_VNIR_ROW_FIFO : integer := 1;
 
     constant FIFO_WORD_LENGTH : integer := 128;  
-    constant FIFO_WORD_BYTES : integer := FIFO_WORD_LENGTH/8; 
+    constant FIFO_WORD_BYTES : integer := FIFO_WORD_LENGTH/8;  -- for command creator
 
     --Number of words in swir and vnir fifo
     constant VNIR_FIFO_DEPTH : integer := 160;  
     constant SWIR_FIFO_DEPTH : integer := 64;   
-
-    --imaging buffer vnir fifo words (pipeline stage 1)
-    constant PIXELS_PER_ROW   : integer := FIFO_WORD_LENGTH/vnir.PIXEL_BITS; 
-
-    subtype vnir_fifo_pixel is std_logic_vector(vnir.PIXEL_BITS-1 downto 0);
-    type vnir_fifo_row is array (0 to PIXELS_PER_ROW-1) of vnir_fifo_pixel;
-    type vnir_fifo_array is array (0 to VNIR_FIFO_DEPTH-1) of vnir_fifo_row;
-    
-    subtype vnir_fifo_a is vnir_base.pixel_vector_t(VNIR_FIFO_DEPTH-1 downto 0)(FIFO_WORD_LENGTH-1 downto 0);
 
     --vnir & swir row fragments are split into their respective FIFO word lengths
     subtype row_fragment_t is std_logic_vector (FIFO_WORD_LENGTH-1 downto 0);
@@ -53,4 +44,11 @@ package img_buffer_pkg is
     type swir_row_fragment_a is array (0 to SWIR_FIFO_DEPTH-1) of row_fragment_t;
 
     type row_type_buffer_a is array (0 to NUM_VNIR_ROW_FIFO-1) of vnir.row_type_t;
+
+    --vnir pipeline 1st stage
+    type row_buffer_a is array (0 to 9) of vnir.row_t;
+    type row_ready_buffer_a is array (0 to 9) of vnir.row_type_t;
+
+
+
 end package img_buffer_pkg;
