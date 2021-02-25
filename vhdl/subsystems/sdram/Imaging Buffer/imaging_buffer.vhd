@@ -183,7 +183,7 @@ begin
                 --If it's the last word getting stored, adding the type to the type buffer
                 if (vnir_frag_counter = VNIR_FIFO_DEPTH-1) then
                     row_type_buffer(vnir_store_counter) <= vnir_row_ready_i;
-                    vnir_row_ready_i <= vnir.ROW_NONE;
+                    vnir_row_ready_i <= vnir.ROW_NONE; -- conflict arises if new vnir row arrives at this clock cycle. need to fix
                     vnir_store_counter <= vnir_store_counter + 1;
                     num_store_vnir_rows <= num_store_vnir_rows + 1;
                 end if;

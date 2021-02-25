@@ -49,6 +49,8 @@ architecture rtl of fifo_row_encoder is
     signal buffer_row_i         : natural;
     signal buffer_row_ready_i   : natural;
 
+    signal row_collect_free     : boolean;
+
 begin
 
     -- TODO:
@@ -61,12 +63,10 @@ begin
         if reset_n = '0' then
             vnir_row_i <= (others => to_unsigned(0, 10));
             vnir_row_ready_i <= vnir.ROW_NONE;
-        elsif rising_edge(clock) then       
+        elsif rising_edge(clock) then
             if (vnir_row_ready /= vnir.ROW_NONE) then
                 vnir_row_i       <= vnir_row;
                 vnir_row_ready_i <= vnir_row_ready;
-            else
-
             end if;
         end if;    
     end process proc_buffer;
@@ -84,13 +84,13 @@ begin
                         vnir_row_fragment((10*(i+1))-1 downto 10*i) <= std_logic_vector(vnir_row_i(start_pixel+i));
                     end loop;
                     for i in 120 to 127 loop -- then the final 8 bits from the next (13th) pixel to make up the 128 bits
-                        vnir_row_fragment(i) <= vnir_row(start_pixel+12)(i-120);
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel+12)(i-120);
                     end loop;
 
                 -- if the start bit is 2 (8 bits remaining from the previous fifo word)  
                 elsif start_bit = 2 then         
                     for i in 0 to 7 loop     -- those 8 bits are put first into the fifo word
-                        vnir_row_fragment(i) <= vnir_row(start_pixel)(start_bit+i);
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel)(start_bit+i);
                     end loop;
                     for i in 0 to 11 loop    -- then the final 120 bits are made up of 12 complete pixels
                         vnir_row_fragment((10*(i+1))+7 downto 10*i+8) <= std_logic_vector(vnir_row_i(start_pixel+i+1));
@@ -100,35 +100,35 @@ begin
                 -- Quartus doesn't synthesize with dynamic loop lengths 
                 elsif start_bit = 4 then 
                     for i in 0 to 5 loop
-                        vnir_row_fragment(i) <= vnir_row(start_pixel)(start_bit+i);  
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel)(start_bit+i);  
                     end loop;
                     for i in 0 to 11 loop
                         vnir_row_fragment(((10*(i+1))+5) downto 10*i+6) <= std_logic_vector(vnir_row_i(start_pixel+i+1));
                     end loop;
                     for i in 126 to 127 loop
-                        vnir_row_fragment(i) <= vnir_row(start_pixel+13)(i-126);
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel+13)(i-126);
                     end loop;
 
                 elsif start_bit = 6 then 
                     for i in 0 to 3 loop
-                        vnir_row_fragment(i) <= vnir_row(start_pixel)(start_bit+i);  
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel)(start_bit+i);  
                     end loop;
                     for i in 0 to 11 loop
                         vnir_row_fragment(((10*(i+1))+3) downto 10*i+4) <= std_logic_vector(vnir_row_i(start_pixel+i+1));
                     end loop;
                     for i in 124 to 127 loop
-                        vnir_row_fragment(i) <= vnir_row(start_pixel+13)(i-124);
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel+13)(i-124);
                     end loop;
 
                 elsif start_bit = 8 then 
                     for i in 0 to 1 loop
-                        vnir_row_fragment(i) <= vnir_row(start_pixel)(start_bit+i);  
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel)(start_bit+i);  
                     end loop;
                     for i in 0 to 11 loop
                         vnir_row_fragment(((10*(i+1))+1) downto 10*i+2) <= std_logic_vector(vnir_row_i(start_pixel+i+1));
                     end loop;
                     for i in 122 to 127 loop
-                        vnir_row_fragment(i) <= vnir_row(start_pixel+13)(i-122);
+                        vnir_row_fragment(i) <= vnir_row_i(start_pixel+13)(i-122);
                     end loop;
 
                 else
@@ -148,6 +148,7 @@ begin
         if reset_n = '0' then
             start_pixel <= 0;
             start_bit   <= 0;
+            row_collect_free <= TRUE;
         elsif rising_edge(clock) then
             if (vnir_row_ready_i /= vnir.ROW_NONE) then
                 for i in 0 to FIFO_WORD_LENGTH-1 loop
@@ -155,9 +156,10 @@ begin
                         pixel_bit := 0;
                         if (pixel_num = vnir.ROW_WIDTH-1) then
                             pixel_num := 0;
-                            --set flag to end loop
+                            row_collect_free <= TRUE;        --set flag to signal end of 1 row
                         else 
                             pixel_num := pixel_num + 1;
+                            row_collect_free <= FALSE;
                         end if;
                     else
                         pixel_bit := pixel_bit + 1;
