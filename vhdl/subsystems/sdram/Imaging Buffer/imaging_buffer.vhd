@@ -27,6 +27,10 @@ use work.fpga_types.all;
 use work.vnir;
 use work.vnir."/=";
 
+--  KNOWN ISSUE: 
+--      When transmitting, only transmits 159 rows instead of 160. 
+--      It reads the last one out of the fifo but doesnt send it out
+
 entity imaging_buffer is
     port(
         --Control Signals
@@ -58,13 +62,13 @@ architecture rtl of imaging_buffer is
     --signals for the first stage of the vnir pipeline
     signal vnir_row_ready_i     : vnir.row_type_t;
     signal vnir_row_fragment    : row_fragment_t;
-    --signal vnir_row_i           : vnir.row_t; 
 
     --Signals for the first stage of the swir pipeline
     signal swir_bit_counter     : integer;
     signal swir_fragment        : row_fragment_t;
 
     --signals for the second stage of the vnir pipeline
+    signal vnir_fragment_in     : std_logic;
     signal row_type_buffer      : row_type_buffer_a;
     signal vnir_frag_counter    : natural range 0 to VNIR_FIFO_DEPTH;
     signal vnir_store_counter   : natural range 0 to NUM_VNIR_ROW_FIFO;
@@ -126,6 +130,7 @@ begin
         reset_n         => reset_n,
         vnir_row        => vnir_row,
         vnir_row_ready  => vnir_row_ready,
+        fragment_out    => vnir_fragment_in,
         vnir_row_fragment => vnir_row_fragment
         );
 
@@ -171,11 +176,10 @@ begin
             --compatible with fifo width -> this is done by fifo_row_encoder.vhd
             if (vnir_row_ready /= vnir.ROW_NONE) then
                 vnir_row_ready_i <= vnir_row_ready;
-                -- vnir_row_i <= vnir_row;
             end if;
 
             --Second stage of the VNIR pipeline, storing data into the fifo chain
-            if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_row_ready_i /= vnir.ROW_NONE) then
+            if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_fragment_in = '1') then
                 vnir_link_in(vnir_store_counter) <= vnir_row_fragment;
                 vnir_link_wrreq(vnir_store_counter) <= '1';
                 vnir_frag_counter <= vnir_frag_counter + 1;
@@ -183,7 +187,6 @@ begin
                 --If it's the last word getting stored, adding the type to the type buffer
                 if (vnir_frag_counter = VNIR_FIFO_DEPTH-1) then
                     row_type_buffer(vnir_store_counter) <= vnir_row_ready_i;
-                    vnir_row_ready_i <= vnir.ROW_NONE; -- conflict arises if new vnir row arrives at this clock cycle. need to fix
                     vnir_store_counter <= vnir_store_counter + 1;
                     num_store_vnir_rows <= num_store_vnir_rows + 1;
                 end if;
