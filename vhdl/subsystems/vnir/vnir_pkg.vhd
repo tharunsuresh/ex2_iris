@@ -21,9 +21,11 @@ use ieee.numeric_std.all;
 use work.vnir_base;
 use work.frame_requester_pkg;
 use work.lvds_decoder_pkg;
-use work.row_collector_pkg;
+use work.pixel_integrator_pkg;
 use work.sensor_configurer_pkg;
 
+-- Together with `vnir_subsystem` provides the public-facing interface
+-- to the VNIR sensor subsystem.
 package vnir is
 
     subtype flip_t is sensor_configurer_pkg.flip_t;
@@ -36,8 +38,6 @@ package vnir is
     constant MAX_WINDOW_SIZE : integer := 16;
     constant METHOD : string := "AVERAGE";  -- "AVERAGE" or "SUM"
 
-    constant MAX_FPS : integer := 2000;
-
     subtype pixel_t is vnir_base.pixel_t(PIXEL_BITS-1 downto 0);
     subtype row_t is vnir_base.pixel_vector_t(ROW_WIDTH-1 downto 0)(ROW_PIXEL_BITS-1 downto 0);
     
@@ -45,17 +45,17 @@ package vnir is
     subtype calibration_t is vnir_base.calibration_t;
 
     type config_t is record
-        window_blue      : window_t;
         window_red       : window_t;
         window_nir       : window_t;
+        window_blue      : window_t;
         flip             : flip_t;
         calibration      : calibration_t;
     end record config_t;
 
     type image_config_t is record
-        duration        : integer;
-        fps             : integer;
-        exposure_time   : integer;
+        length          : integer;
+        frame_clocks    : integer;
+        exposure_clocks : integer;
     end record image_config_t;
 
     type row_type_t is (ROW_NONE, ROW_NIR, ROW_BLUE, ROW_RED);
@@ -66,13 +66,13 @@ package vnir is
         data    : std_logic_vector(FRAGMENT_WIDTH-1 downto 0);
     end record lvds_t;
 
-    type state_t is (RESET, PRE_CONFIG, CONFIGURING, PRE_IMAGE_CONFIG, IMAGE_CONFIGURING, IDLE, IMAGING);
+    type state_t is (PRE_CONFIG, CONFIGURING, PRE_IMAGE_CONFIG, IMAGE_CONFIGURING, IDLE, IMAGING);
 
     type status_t is record
         state               : state_t;
         frame_requester     : frame_requester_pkg.status_t;
         lvds_decoder        : lvds_decoder_pkg.status_t;
-        row_collector       : row_collector_pkg.status_t;
+        pixel_integrator       : pixel_integrator_pkg.status_t;
         sensor_configurer   : sensor_configurer_pkg.status_t;
     end record status_t;
 

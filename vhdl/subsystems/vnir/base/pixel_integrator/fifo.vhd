@@ -21,7 +21,7 @@ library altera_mf;
 use altera_mf.altera_mf_components.all;
 
 
-entity row_buffer is
+entity pixel_integrator_fifo is
 generic (
     WORD_SIZE : integer;
     ADDRESS_SIZE : integer
@@ -35,10 +35,10 @@ port (
     write_address   : in std_logic_vector(ADDRESS_SIZE-1 downto 0);
     write_enable    : in std_logic
 );
-end entity row_buffer;
+end entity pixel_integrator_fifo;
 
 
-architecture rtl of row_buffer is
+architecture rtl of pixel_integrator_fifo is
 begin
 
     ram : altsyncram generic map (

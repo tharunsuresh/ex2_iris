@@ -104,22 +104,21 @@ begin
     lfragment_ordered <= flatten(bitreverse(unflatten_to_fragment(lfragment, PIXEL_BITS)));
     lcontrol_ordered <= bitreverse(lcontrol);
 
-    fsm : process (decoder_outclock)
-        type state_t is (RESET, IDLE, READOUT, ALIGN_HIGH, ALIGN_LOW, ALIGN_WAIT);
+    fsm : process (reset_n, decoder_outclock)
+        type state_t is (IDLE, READOUT, ALIGN_HIGH, ALIGN_LOW, ALIGN_WAIT);
         variable state : state_t;
         variable offset : integer;
         variable control_msb : pixel_t(PIXEL_BITS-1 downto 0);
     begin
-        if rising_edge(decoder_outclock) then
+        if reset_n = '0' then
             to_fifo <= (others => '0');
             data_align <= '0';
-            if reset_n = '0' then
-                state := RESET;
-            end if;
+            state := IDLE;
+        elsif rising_edge(decoder_outclock) then
+            to_fifo <= (others => '0');
+            data_align <= '0';
 
             case state is
-            when RESET =>
-                state := IDLE;
             when IDLE =>
                 if start_align = '1' then
                     offset := calc_align_offset(lcontrol, LCONTROL_TARGET);

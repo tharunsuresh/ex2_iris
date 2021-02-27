@@ -38,7 +38,7 @@ IMAGE_LENGTH = 10
 N_FRAMES = IMAGE_LENGTH + WINDOWS[-1].hi
 ROWS_PER_FRAME = sum(w.size for w in WINDOWS)
 
-OUT_DIR = Path('../../out/row_collector/')
+OUT_DIR = Path('../../out/pixel_integrator/')
 
 
 def get_row_window(row: int) -> Tuple[int, Window]:

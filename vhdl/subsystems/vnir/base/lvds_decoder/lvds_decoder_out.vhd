@@ -60,38 +60,38 @@ begin
         FRAGMENT_BITS - 1 downto 0
     ), PIXEL_BITS);
 
-    fsm : process
-        type state_t is (RESET, ALIGNED, NONALIGNED);
+    fsm : process (reset_n, clock)
+        type state_t is (ALIGNED, NONALIGNED);
         variable state : state_t;
     begin
-        wait until rising_edge(clock);
-        align_done <= '0';
-        fragment_available <= '0';
-
         if reset_n = '0' then
-            state := RESET;
-        end if;
-
-        case state is
-        when RESET =>
+            align_done <= '0';
+            fragment_available <= '0';
             state := NONALIGNED;
-        when NONALIGNED =>
-            if from_fifo_is_aligned = '1' then
-                state := ALIGNED;
-                align_done <= '1';
-            end if;
-        when ALIGNED =>
-            if from_fifo_is_aligned /= '1' then
-                state := NONALIGNED;
-            end if;
-        end case;
+        elsif rising_edge(clock) then
+            align_done <= '0';
+            fragment_available <= '0';
 
-        if state = ALIGNED then
-            if data_in_available = '1' then
-                fragment_available <= '1';
-                fragment_control <= from_fifo_control;
-                fragment <= from_fifo_fragment;
+            case state is
+            when NONALIGNED =>
+                if from_fifo_is_aligned = '1' then
+                    state := ALIGNED;
+                    align_done <= '1';
+                end if;
+            when ALIGNED =>
+                if from_fifo_is_aligned /= '1' then
+                    state := NONALIGNED;
+                end if;
+            end case;
+
+            if state = ALIGNED then
+                if data_in_available = '1' then
+                    fragment_available <= '1';
+                    fragment_control <= from_fifo_control;
+                    fragment <= from_fifo_fragment;
+                end if;
             end if;
+
         end if;
     end process fsm;
 

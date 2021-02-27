@@ -20,9 +20,9 @@ use ieee.numeric_std.all;
 
 package swir_types is
     type swir_config_t is record
-        start_config     : std_logic;
-        imaging_duration : integer;
-        fps              : integer;
+        frame_clocks    : integer;
+        exposure_clocks : integer;
+        length          : integer;
     end record swir_config_t;
 
     type swir_control_t is record

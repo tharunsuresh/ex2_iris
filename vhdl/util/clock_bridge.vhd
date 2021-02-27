@@ -20,6 +20,29 @@ use ieee.std_logic_1164.all;
 library altera_mf;
 use altera_mf.all;
 
+-- Allows signal pulses to cross clock domains.
+--
+-- When given a single-clock-cycle pulse in the input `i` synchronous
+-- to `i_clock`, gives a single-clock-cycle pulse synchronous to
+-- `o_clock` on the output `o`, effectively translating the pulse from
+-- the `i_clock` to `o_clock` domains.
+--
+-- Note: some variable latency is incurred by the internal use of a
+-- DCFIFO component. Expect the output to be given a few clock cycles
+-- after the input is registered.
+--
+-- Parameters
+-- ----------
+-- reset_n      : asynchronous active-low reset
+-- i_clock      : input clock domain
+-- i            : input data line
+-- o_clock      : output clock domain
+-- o            : output data line
+-- o_reset_n    : reset_n translated to the output clock domain
+-- overflow_i   : overflow error signal in the input clock domain. Is
+--                held high until reset if an overflow of the internal
+--                DCFIFO occures.
+-- overflow_o   : like overflow_i, but in the output clock domain
 entity clock_bridge is
 port (
     reset_n     : in std_logic;
@@ -34,6 +57,8 @@ port (
 end entity clock_bridge;
 
 architecture rtl of clock_bridge is
+    -- DCFIFO configured in lookahead mode (rdreq is actually a read
+    -- acknowledgement).
     component dcfifo
     generic (
         intended_device_family  : string    := "Cyclone V";

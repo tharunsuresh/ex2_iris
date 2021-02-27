@@ -21,6 +21,11 @@ use ieee.numeric_std.all;
 use work.logic_types.all;
 
 
+-- Contains types used internally in the VNIR sensor subsystem.
+-- 
+-- Uses unconstrained arrays for maximum flexibility. Note that this
+-- means all internal VNIR sensor subsystem components must be able
+-- to work with arbitrary pixel sizes/etc.
 package vnir_base is
 
     subtype pixel_t is unsigned;
@@ -32,6 +37,7 @@ package vnir_base is
     end record window_t;
     type window_vector_t is array(integer range <>) of window_t;
     
+    -- VNIR sensor calibration values
     type calibration_t is record
         v_ramp1  : integer;
         v_ramp2  : integer;
@@ -39,6 +45,7 @@ package vnir_base is
         adc_gain : integer;
     end record calibration_t;
 
+    -- VNIR sensor control byte
     type control_t is record
         dval : std_logic;
         lval : std_logic;

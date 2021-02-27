@@ -24,8 +24,7 @@ use std.env.stop;
 
 use work.spi_types.all;
 use work.vnir_base.all;
-use work.test_util.all;
-use work.row_collector_pkg.all;
+use work.pixel_integrator_pkg.all;
 
 use work.vnir.ROW_WIDTH;
 use work.vnir.FRAGMENT_WIDTH;
@@ -35,10 +34,10 @@ use work.vnir.N_WINDOWS;
 use work.vnir.MAX_WINDOW_SIZE;
 
 
-entity row_collector_average_tb is
-end entity row_collector_average_tb;
+entity pixel_integrator_average_tb is
+end entity pixel_integrator_average_tb;
 
-architecture tests of row_collector_average_tb is
+architecture tests of pixel_integrator_average_tb is
 
     signal clock                : std_logic := '0';
     signal reset_n              : std_logic := '0';
@@ -52,7 +51,7 @@ architecture tests of row_collector_average_tb is
     signal row_window           : integer;
     signal status               : status_t;
 
-    component row_collector is
+    component pixel_integrator is
     generic (
         ROW_WIDTH           : integer := ROW_WIDTH;
         FRAGMENT_WIDTH      : integer := FRAGMENT_WIDTH;
@@ -75,7 +74,7 @@ architecture tests of row_collector_average_tb is
         row_window          : out integer;
         status              : out status_t
     );
-    end component row_collector;
+    end component pixel_integrator;
 
     procedure readline(file f : text; row : out pixel_vector_t) is
         variable f_line : line;
@@ -99,7 +98,7 @@ architecture tests of row_collector_average_tb is
         end loop;
 
         readline(f, f_line);
-        read(f_line, config.image_length);
+        read(f_line, config.length);
     end procedure read;
 
     procedure read(file f : text; i : out integer) is
@@ -109,7 +108,7 @@ architecture tests of row_collector_average_tb is
         read(f_line, i);
     end procedure read;
 
-    constant OUT_DIR : string := "../subsystems/vnir/tests/out/row_collector/";
+    constant OUT_DIR : string := "../subsystems/vnir/tests/out/pixel_integrator/";
 
 begin
 
@@ -194,7 +193,7 @@ begin
         wait;
     end process;
 
-    row_collector_component : row_collector port map (
+    pixel_integrator_component : pixel_integrator port map (
         clock => clock,
         reset_n => reset_n,
         config => config,

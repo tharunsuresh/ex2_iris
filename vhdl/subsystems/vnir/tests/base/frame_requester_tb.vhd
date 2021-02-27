@@ -26,7 +26,6 @@ use work.vnir_base.all;
 use work.frame_requester_pkg.all;
 
 use work.vnir.FRAGMENT_WIDTH;
-use work.vnir.MAX_FPS;
 
 entity frame_requester_tb is
 end entity;
@@ -47,8 +46,7 @@ architecture tests of frame_requester_tb is
     component frame_requester_mainclock is
     generic (
         FRAGMENT_WIDTH      : integer := FRAGMENT_WIDTH;
-        CLOCKS_PER_SEC      : integer;
-        MAX_FPS             : integer := MAX_FPS
+        CLOCKS_PER_SEC      : integer
     );
     port (
         clock               : in std_logic;
@@ -99,13 +97,12 @@ begin
     
     test : process
 
-        procedure test (NUM_FRAMES : integer; REQUESTED_EXPOSURE_TIME : time; REQUESTED_FPS : integer) is
-            constant FREQUESTED_FRAME_TIME : time := 1 sec / REQUESTED_FPS;
+        procedure test (NUM_FRAMES : integer; REQUESTED_EXPOSURE_TIME : time; REQUESTED_FRAME_TIME : time) is
             constant EXTRA_EXPOSURE_TIME : time := (129.0*0.43*20.0) * SCLOCK_PERIOD;
             variable i_frame : integer := 0;
             variable i_exposure : integer := 0;
             variable last_exposure : time := 0 ns;
-            variable first_frame : time := 0 ns;
+            variable last_frame_request : time := 0 ns;
             variable frame_time : time := 0 ns;
             variable exposure_time : time := 0 ns;
             variable exit_time : time := 0 ns;
@@ -113,7 +110,7 @@ begin
         begin
 
             reset_n <= '0'; wait until rising_edge(clock); reset_n <= '1';
-            config <= (num_frames => NUM_FRAMES, fps => REQUESTED_FPS, exposure_time => REQUESTED_EXPOSURE_TIME / 1 ms);
+            config <= (num_frames => NUM_FRAMES, frame_clocks => REQUESTED_FRAME_TIME / CLOCK_PERIOD, exposure_clocks => REQUESTED_EXPOSURE_TIME / CLOCK_PERIOD);
             start_config <= '1'; wait until rising_edge(clock); start_config <= '0';
             wait until rising_edge(clock) and config_done = '1';
 
@@ -126,18 +123,17 @@ begin
                     assert expecting_frame_request;
                     assert exposure_start = '0';
 
-                    if last_exposure /= 0ns then
+                    if last_exposure /= 0 ns then
                         exposure_time := now - last_exposure + EXTRA_EXPOSURE_TIME;
                         report "Exposure time = " & time'image(exposure_time);
                         assert in_range(exposure_time, REQUESTED_EXPOSURE_TIME - CLOCK_PERIOD, REQUESTED_EXPOSURE_TIME + CLOCK_PERIOD);
                     end if;
-                    if first_frame /= 0ns then
-                        frame_time := (now - first_frame);
-                        report "Frame time = " & time'image(frame_time / i_frame);
-                        assert in_range(frame_time, i_frame * FREQUESTED_FRAME_TIME - CLOCK_PERIOD,  i_frame * FREQUESTED_FRAME_TIME + CLOCK_PERIOD);
-                    else
-                        first_frame := now;
+                    if last_frame_request /= 0 ns then
+                        frame_time := now - last_frame_request;
+                        report "Frame time = " & time'image(frame_time);
+                        assert frame_time = REQUESTED_FRAME_TIME;
                     end if;
+                    last_frame_request := now;
                     i_frame := i_frame + 1;
                     expecting_frame_request := false;
                 end if;
@@ -163,9 +159,9 @@ begin
         end procedure test;
 
     begin
-        test(5, 7 ms, 100);
-        test(10, 3 ms, 200);
-        test(100, 1 ms, 383);
+        test(5, 7 ms, 10 ms);
+        test(10, 3 ms, 5 ms);
+        test(100, 1 ms, 2.611 ms);
         stop;
 
 	end process test;

@@ -20,37 +20,79 @@ use work.vnir_base.all;
 
 package sensor_configurer_pkg is
 
+    -- Maximum number of windows `sensor_configurer` can be configured
+    -- to use
     constant MAX_N_WINDOWS : integer := 10;
 
+    -- Whether to flip the image when reading it out
     type flip_t is (FLIP_NONE, FLIP_X, FLIP_Y, FLIP_XY);
 
+    -- Configuration values to be uploaded to the sensor in instruction
+    -- form.
     type config_t is record
         flip        : flip_t;
         calibration : calibration_t;
         windows     : window_vector_t(MAX_N_WINDOWS-1 downto 0);
     end record config_t;
 
-    type state_t is (RESET, OFF, IDLE, CONFIG_POWER_ON, CONFIG_CLOCK_ON, CONFIG_RESET_OFF,
+    -- Possible states of `sensor_configurer`. Defined in a globally-
+    -- accessible scope so that the state may be included in the status
+    -- register
+    type state_t is (OFF, IDLE, CONFIG_POWER_ON, CONFIG_CLOCK_ON, CONFIG_RESET_OFF,
                      CONFIG_TRANSMIT, CONFIG_TRANSMIT_FINISH, CONFIG_SPI_SETTLE);
 
+    -- `sensor_configurer` status register, to be used for debugging
     type status_t is record
         state   : state_t;
     end record status_t;
 
+
+    -- The following functions build the sensor's configuration data
+    -- from human-readable configuration parameters. Check the user
+    -- manual for more information.
+
+    -- Generates the instructions required to set an 8-bit value at a
+    -- given address
     pure function l8_instructions(l8 : logic8_t; addr : integer) return logic16_vector_t;
     pure function i8_instructions(i8 : integer; addr : integer) return logic16_vector_t;
+    -- Generates the instructions required to set a 16-bit value at a
+    -- given address
     pure function l16_instructions(l16 : logic16_t; addr : integer) return logic16_vector_t;
     pure function i16_instructions(i16 : integer; addr : integer) return logic16_vector_t;
     
+    -- Generates the instructions required to configure a single window
     pure function window_instructions(window : window_t; index : integer) return logic16_vector_t;
+    -- Generates the instructions to configure all the windows in `config`
     pure function window_instructions(config : config_t; N_WINDOWS : integer) return logic16_vector_t;
+    -- Generates the instructions to configure image flipping
     pure function flip_instructions(flip : flip_t) return logic16_vector_t;
+    -- Generates instructions to to set or unset miscellaneous flags,
+    -- given to `misc_instructions` as a bitwise argument. Possible
+    -- flags are:
+    -- * EXTERNAL_EXPOSURE : enable external-exposure mode
+    -- * DUAL_EXPOSURE     : enable dual-exposure mode
+    -- * DUMMY_INSERTION   : enable dummy-data insertion when no data
+    --                       is available 
     pure function misc_instructions(flags : std_logic_vector) return logic16_vector_t;
+    -- Generates instructions to set the number of output channels the
+    -- sensor will use
     pure function n_channels_instructions(n_channels : integer) return logic16_vector_t;
+    -- Generates instructions to set the sensor's calibration values
     pure function calibration_instructions(calibration : calibration_t) return logic16_vector_t;
+    -- Generates instructions to set the sensor's bit-mode, i.e. whether
+    -- to use 10-bit or 12-bit pixels
     pure function bit_mode_instructions(pixel_bits : integer) return logic16_vector_t;
+    -- Generate instructions to configure the sensor's internal PLL
+    -- according to the expected sensor clock frequency
     pure function pll_instructions(sensor_clock_MHz : integer; pixel_bits : integer) return logic16_vector_t;
+    -- Generate instructions that are required according to the manual,
+    -- but who's functions are otherwise undocumented
     pure function undocumented_instructions return logic16_vector_t;
+    
+    -- Generates all configuration instructions, setting the sensor
+    -- to external-exposure mode, it's expected clock frequency to
+    -- 48MHz, and various other values to the settings consistent with
+    -- the input parameters
     pure function all_instructions (config : config_t;  FRAGMENT_WIDTH : integer;
                                     PIXEL_BITS : integer; N_WINDOWS : integer
                                    ) return logic16_vector_t;
@@ -63,6 +105,8 @@ package body sensor_configurer_pkg is
     pure function l8_instructions(l8 : logic8_t; addr : integer) return logic16_vector_t is
         variable instructions : logic16_vector_t(0 downto 0);
     begin
+        -- Setting a single byte in the sensor's internal register can
+        -- be done using a single 16-bit instruction
         instructions(0) := '1' & to_logic7(addr) & l8;
         return instructions;
     end function l8_instructions;
@@ -75,6 +119,8 @@ package body sensor_configurer_pkg is
     pure function l16_instructions(l16 : logic16_t; addr : integer) return logic16_vector_t is
         variable instructions : logic16_vector_t(2-1 downto 0);
     begin
+        -- Setting two bytes in the sensor's internal register is done
+        -- with two 16-bit instructions
         instructions(1) := '1' & to_logic7(addr + 0) & l16(7 downto 0);
         instructions(0) := '1' & to_logic7(addr + 1) & l16(15 downto 8);
         return instructions;

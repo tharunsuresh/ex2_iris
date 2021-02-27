@@ -19,6 +19,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 
+-- Microsecond-accurate delay timer
 entity timer is
 generic (
     CLOCKS_PER_SEC  : integer;
@@ -36,9 +37,9 @@ end entity timer;
 architecture rtl of timer is
 begin
 
-    fsm : process
+    fsm : process (clock, reset_n)
         constant uS_PER_S : integer := 1000000;
-        type state_t is (RESET, IDLE, WAITING);
+        type state_t is (IDLE, WAITING);
         variable state : state_t;
         variable clocks_waited : integer;
 
@@ -47,30 +48,25 @@ begin
         );
 
     begin
-        wait until rising_edge(clock);
-
-        done <= '0';
-
         if reset_n = '0' then
-            state := RESET;
-        end if;
-
-        case state is
-        when RESET =>
             state := IDLE;
-        when IDLE =>
-            if start = '1' then
-                state := WAITING;
-                clocks_waited := 1;
-            end if;
-        when WAITING =>
-            if clocks_waited  >= CLOCKS_TO_WAIT then
-                state := IDLE;
-                done <= '1';
-            end if;
-            clocks_waited := clocks_waited + 1;
-        end case;
-        
+            done <= '0';
+        elsif rising_edge(clock) then
+            done <= '0';
+            case state is
+            when IDLE =>
+                if start = '1' then
+                    state := WAITING;
+                    clocks_waited := 1;
+                end if;
+            when WAITING =>
+                if clocks_waited  >= CLOCKS_TO_WAIT then
+                    state := IDLE;
+                    done <= '1';
+                end if;
+                clocks_waited := clocks_waited + 1;
+            end case;
+        end if;
     end process fsm;
 
 end architecture rtl;

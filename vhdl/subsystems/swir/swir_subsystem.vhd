@@ -23,23 +23,37 @@ use work.swir_types.all;
 
 entity swir_subsystem is
     port (
-        clock           : in std_logic;
-        reset_n         : in std_logic;
+        clock               : in std_logic;
+        reset_n             : in std_logic;
         
-        config          : in swir_config_t;
-        control         : out swir_control_t;
-        config_done     : out std_logic;
+        config              : in swir_config_t;
+        control             : out swir_control_t;
+        start_config        : in std_logic;
+        config_done         : out std_logic;
         
-        do_imaging      : in std_logic;
+        do_imaging          : in std_logic;
+        imaging_done        : out std_logic;
 
-        num_rows        : out integer;
-        row             : out swir_row_t;
-        row_available   : out std_logic;
+        pixel               : out swir_pixel_t;
+        pxl_available       : out std_logic;
 
-        sensor_clock    : out std_logic;
-        sensor_reset    : out std_logic;
-
-        video           : in std_logic
+        -- Signals to/from ADC
+        sdi                 : out std_logic;
+        sdo                 : in std_logic;
+        sck                 : out std_logic;
+        cnv                 : out std_logic;
+        
+        -- Signals to/from SWIR sensor
+        sensor_clock_even   : out std_logic;
+        sensor_clock_odd    : out std_logic;
+        sensor_reset_even   : out std_logic;
+        sensor_reset_odd    : out std_logic;
+        Cf_select1          : out std_logic;
+        Cf_select2          : out std_logic;
+        AD_sp_even          : in std_logic;
+        AD_sp_odd           : in std_logic;
+        AD_trig_even        : in std_logic;
+        AD_trig_odd         : in std_logic
     );
 end entity swir_subsystem;
 

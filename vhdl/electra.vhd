@@ -23,178 +23,184 @@ use work.avalonmm;
 use work.vnir;
 use work.swir_types.all;
 use work.sdram;
-use work.fpga_types.all;
 
 entity electra is
-end electra;
+port (
+    clock                    : in std_logic;
+    pll_ref_clock            : in std_logic;
+
+    -- VNIR external ports
+    vnir_sensor_power       : out std_logic;
+    vnir_sensor_clock       : out std_logic;
+    vnir_sensor_reset_n     : out std_logic;
+    vnir_spi_out            : out spi_from_master_t;
+    vnir_spi_in             : in spi_to_master_t;
+    vnir_frame_request      : out std_logic;
+    vnir_exposure_start     : out std_logic;
+    vnir_lvds               : in vnir.lvds_t;
+
+    -- SWIR external ports
+    swir_control            : out swir_control_t;
+    swir_sdi                : out std_logic;
+    swir_sdo                : in std_logic;
+    swir_sck                : out std_logic;
+    swir_cnv                : out std_logic;
+    swir_sensor_clock_even  : out std_logic;
+    swir_sensor_clock_odd   : out std_logic;
+    swir_sensor_reset_even  : out std_logic;
+    swir_sensor_reset_odd   : out std_logic;
+    swir_Cf_select1         : out std_logic;
+    swir_Cf_select2         : out std_logic;
+    swir_AD_sp_even         : in std_logic;
+    swir_AD_sp_odd          : in std_logic;
+    swir_AD_trig_even       : in std_logic;
+    swir_AD_trig_odd        : in std_logic;
+
+    -- SDRAM external ports
+    sdram_avalon_out        : out avalonmm.from_master_t;
+    sdram_avalon_in         : in avalonmm.to_master_t;
+
+    -- HPS to DDR3
+    HPS_DDR3_ADDR           : out std_logic_vector(14 downto 0);
+    HPS_DDR3_BA             : out std_logic_vector(2 downto 0);
+    HPS_DDR3_CK_P           : out std_logic;
+    HPS_DDR3_CK_N           : out std_logic;
+    HPS_DDR3_CKE            : out std_logic;
+    HPS_DDR3_CS_N           : out std_logic;
+    HPS_DDR3_RAS_N          : out std_logic;
+    HPS_DDR3_CAS_N          : out std_logic;
+    HPS_DDR3_WE_N           : out std_logic;
+    HPS_DDR3_RESET_N        : out std_logic;
+    HPS_DDR3_DQ             : inout std_logic_vector(31 downto 0) := (others => 'X');
+    HPS_DDR3_DQS_P          : inout std_logic_vector(3 downto 0) := (others => 'X');
+    HPS_DDR3_DQS_N          : inout std_logic_vector(3 downto 0) := (others => 'X');
+    HPS_DDR3_ODT            : out std_logic;
+    HPS_DDR3_DM             : out std_logic_vector(3 downto 0);
+    HPS_DDR3_RZQ            : in std_logic := 'X'
+);
+end entity electra;
 
 
 architecture rtl of electra is
 
-	component soc_system is
-		port (
-			clk_clk                           : in    std_logic                      := 'X';             -- clk
-			hps_0_f2h_sdram0_data_address     : in    std_logic_vector(27 downto 0)  := (others => 'X'); -- address
-			hps_0_f2h_sdram0_data_burstcount  : in    std_logic_vector(7 downto 0)   := (others => 'X'); -- burstcount
-			hps_0_f2h_sdram0_data_waitrequest : out   std_logic;                                         -- waitrequest
-			hps_0_f2h_sdram0_data_writedata   : in    std_logic_vector(127 downto 0) := (others => 'X'); -- writedata
-			hps_0_f2h_sdram0_data_byteenable  : in    std_logic_vector(15 downto 0)  := (others => 'X'); -- byteenable
-			hps_0_f2h_sdram0_data_write       : in    std_logic                      := 'X';             -- write
-			memory_mem_a                      : out   std_logic_vector(14 downto 0);                     -- mem_a
-			memory_mem_ba                     : out   std_logic_vector(2 downto 0);                      -- mem_ba
-			memory_mem_ck                     : out   std_logic;                                         -- mem_ck
-			memory_mem_ck_n                   : out   std_logic;                                         -- mem_ck_n
-			memory_mem_cke                    : out   std_logic;                                         -- mem_cke
-			memory_mem_cs_n                   : out   std_logic;                                         -- mem_cs_n
-			memory_mem_ras_n                  : out   std_logic;                                         -- mem_ras_n
-			memory_mem_cas_n                  : out   std_logic;                                         -- mem_cas_n
-			memory_mem_we_n                   : out   std_logic;                                         -- mem_we_n
-			memory_mem_reset_n                : out   std_logic;                                         -- mem_reset_n
-			memory_mem_dq                     : inout std_logic_vector(15 downto 0)  := (others => 'X'); -- mem_dq
-			memory_mem_dqs                    : inout std_logic_vector(1 downto 0)   := (others => 'X'); -- mem_dqs
-			memory_mem_dqs_n                  : inout std_logic_vector(1 downto 0)   := (others => 'X'); -- mem_dqs_n
-			memory_mem_odt                    : out   std_logic;                                         -- mem_odt
-			memory_mem_dm                     : out   std_logic_vector(1 downto 0);                      -- mem_dm
-			memory_oct_rzqin                  : in    std_logic                      := 'X';             -- oct_rzqin
-			reset_reset_n                     : in    std_logic                      := 'X';             -- reset_n
-			hps_0_h2f_reset_reset_n           : out   std_logic                                          -- reset_n
-		);
-	end component soc_system;
-
-    component sdram_subsystem
+    component fpga_subsystem is
     port (
-        --Control signals
-        clock               : in std_logic;
-        reset_n             : in std_logic;
+        clock                   : in std_logic;
+        pll_ref_clock           : in std_logic;
+        reset_n                 : in std_logic;
 
-        --VNIR row signals
-        vnir_rows_available : in vnir.row_type_t;
-        vnir_num_rows       : in integer;
-        vnir_rows           : in vnir.row_t;
-        
-        --SWIR row signals
-        swir_row_available  : in std_logic;
-        swir_num_rows       : in integer;
-        swir_row            : in swir_row_t;
-        
-        timestamp           : in timestamp_t;
-        mpu_memory_change   : in sdram.address_block_t;
-        config_in           : in sdram.config_to_sdram_t;
-        start_config        : in std_logic;
-        config_out          : out sdram.memory_state_t;
-        config_done         : out std_logic;
-        img_config_done     : out std_logic;
-        
-        sdram_busy          : out std_logic;
-        sdram_error         : out sdram.error_t;
-        
-        sdram_avalon_out    : out avalonmm.from_master_t;
-        sdram_avalon_in     : in avalonmm.to_master_t
+        vnir_sensor_power       : out std_logic;
+        vnir_sensor_clock       : out std_logic;
+        vnir_sensor_reset_n     : out std_logic;
+        vnir_spi_out            : out spi_from_master_t;
+        vnir_spi_in             : in spi_to_master_t;
+        vnir_frame_request      : out std_logic;
+        vnir_exposure_start     : out std_logic;
+        vnir_lvds               : in vnir.lvds_t;
+
+        swir_control            : out swir_control_t;
+        swir_sdi                : out std_logic;
+        swir_sdo                : in std_logic;
+        swir_sck                : out std_logic;
+        swir_cnv                : out std_logic;
+        swir_sensor_clock_even  : out std_logic;
+        swir_sensor_clock_odd   : out std_logic;
+        swir_sensor_reset_even  : out std_logic;
+        swir_sensor_reset_odd   : out std_logic;
+        swir_Cf_select1         : out std_logic;
+        swir_Cf_select2         : out std_logic;
+        swir_AD_sp_even         : in std_logic;
+        swir_AD_sp_odd          : in std_logic;
+        swir_AD_trig_even       : in std_logic;
+        swir_AD_trig_odd        : in std_logic;
+
+        sdram_avalon_out        : out avalonmm.from_master_t;
+        sdram_avalon_in         : in avalonmm.to_master_t;
+
+        HPS_DDR3_ADDR           : out std_logic_vector(14 downto 0);
+        HPS_DDR3_BA             : out std_logic_vector(2 downto 0);
+        HPS_DDR3_CK_P           : out std_logic;
+        HPS_DDR3_CK_N           : out std_logic;
+        HPS_DDR3_CKE            : out std_logic;
+        HPS_DDR3_CS_N           : out std_logic;
+        HPS_DDR3_RAS_N          : out std_logic;
+        HPS_DDR3_CAS_N          : out std_logic;
+        HPS_DDR3_WE_N           : out std_logic;
+        HPS_DDR3_RESET_N        : out std_logic;
+        HPS_DDR3_DQ             : inout std_logic_vector(31 downto 0) := (others => 'X');
+        HPS_DDR3_DQS_P          : inout std_logic_vector(3 downto 0) := (others => 'X');
+        HPS_DDR3_DQS_N          : inout std_logic_vector(3 downto 0) := (others => 'X');
+        HPS_DDR3_ODT            : out std_logic;
+        HPS_DDR3_DM             : out std_logic_vector(3 downto 0);
+        HPS_DDR3_RZQ            : in std_logic := 'X'
     );
-    end component;
+    end component fpga_subsystem;
 
-    signal clock    : std_logic;  -- Main clock
-    signal reset_n  : std_logic;  -- Main reset
-    
-    -- vnir <=> sdram
-    signal vnir_rows : vnir.row_t;
-    signal vnir_rows_available : vnir.row_type_t;
-
-    -- vnir <=> sdram, fpga
-    signal vnir_num_rows : integer;
-
-    -- swir <=> sdram, fpga
-    signal swir_num_rows : integer;
-
-    -- swir <=> sdram
-    signal swir_row : swir_row_t;
-    signal swir_row_available : std_logic;
-
-    -- fpga <=> sdram
-    signal timestamp : timestamp_t;
-    signal start_config : std_logic;
-    signal mpu_memory_change : sdram.address_block_t;
-    signal sdram_config : sdram.config_to_sdram_t;
-    signal sdram_partitions : sdram.memory_state_t;
-    signal sdram_config_done : std_logic;
-    signal sdram_img_config_done : std_logic;
-    signal sdram_busy : std_logic;
-    signal sdram_error : sdram.error_t;
-
-    -- sdram <=> RAM
-    signal sdram_avalon : avalonmm.bus_t;
+    signal reset_n      : std_logic;
+    signal reset_clocks : integer := 10;  -- Hold reset for 10 clock cycles on startup
 
     attribute keep : boolean;
-
-    attribute keep of clock                 : signal is true;
-    attribute keep of reset_n               : signal is true;
-    attribute keep of vnir_rows             : signal is true;
-    attribute keep of vnir_rows_available   : signal is true;
-    attribute keep of vnir_num_rows         : signal is true;
-    attribute keep of swir_num_rows         : signal is true;
-    attribute keep of swir_row              : signal is true;
-    attribute keep of swir_row_available    : signal is true;
-    attribute keep of timestamp             : signal is true;
-    attribute keep of start_config          : signal is true;
-    attribute keep of mpu_memory_change     : signal is true;
-    attribute keep of sdram_config          : signal is true;
-    attribute keep of sdram_partitions      : signal is true;
-    attribute keep of sdram_config_done     : signal is true;
-    attribute keep of sdram_img_config_done : signal is true;
-    attribute keep of sdram_busy            : signal is true;
-    attribute keep of sdram_error           : signal is true;
-    attribute keep of sdram_avalon          : signal is true;
+    attribute keep of reset_n : signal is true;
 
 begin
 
-    u0 : component soc_system
-		port map (
-			clk_clk                           => clock,
-            hps_0_f2h_sdram0_data_address     => sdram_avalon.from_master.address,
-            hps_0_f2h_sdram0_data_burstcount  => sdram_avalon.from_master.burst_count,
-            hps_0_f2h_sdram0_data_waitrequest => sdram_avalon.to_master.wait_request,
-            hps_0_f2h_sdram0_data_writedata   => sdram_avalon.from_master.write_data,
-            hps_0_f2h_sdram0_data_byteenable  => sdram_avalon.from_master.byte_enable,
-            hps_0_f2h_sdram0_data_write       => sdram_avalon.from_master.write_cmd,
-			memory_mem_a                      => open,
-			memory_mem_ba                     => open,
-			memory_mem_ck                     => open,
-			memory_mem_ck_n                   => open,
-			memory_mem_cke                    => open,
-			memory_mem_cs_n                   => open,
-			memory_mem_ras_n                  => open,
-			memory_mem_cas_n                  => open,
-			memory_mem_we_n                   => open,
-			memory_mem_reset_n                => open,
-			memory_mem_dq                     => open,
-			memory_mem_dqs                    => open,
-			memory_mem_dqs_n                  => open,
-			memory_mem_odt                    => open,
-			memory_mem_dm                     => open,
-			memory_oct_rzqin                  => open,
-			reset_reset_n                     => reset_n,
-			hps_0_h2f_reset_reset_n           => open
-		);
+    process (clock)
+    begin
+        if rising_edge(clock) then
+            if reset_clocks > 0 then
+                reset_clocks <= reset_clocks - 1;
+                reset_n <= '0';
+            else
+                reset_n <= '1';
+            end if;
+        end if;
+    end process;
 
-    sdram_subsystem_component : sdram_subsystem port map (
-        clock => clock,
-        reset_n => reset_n,
-        vnir_rows_available => vnir_rows_available,
-        vnir_num_rows => vnir_num_rows,
-        vnir_rows => vnir_rows,
-        swir_row_available => swir_row_available,
-        swir_num_rows => swir_num_rows,
-        swir_row => swir_row,
-        timestamp => timestamp,
-        mpu_memory_change => mpu_memory_change,
-        config_in => sdram_config,
-        start_config => start_config,
-        config_out => sdram_partitions,
-        config_done => sdram_config_done,
-        img_config_done => sdram_img_config_done,
-        sdram_busy => sdram_busy,
-        sdram_error => sdram_error,
-        sdram_avalon_out => sdram_avalon.from_master,
-        sdram_avalon_in => sdram_avalon.to_master
+    fpga_cmp : fpga_subsystem port map (
+        clock                   => clock,
+        pll_ref_clock           => pll_ref_clock,
+        reset_n                 => reset_n,
+        vnir_sensor_power       => vnir_sensor_power,
+        vnir_sensor_clock       => vnir_sensor_clock,
+        vnir_sensor_reset_n     => vnir_sensor_reset_n,
+        vnir_spi_out            => vnir_spi_out,
+        vnir_spi_in             => vnir_spi_in,
+        vnir_frame_request      => vnir_frame_request,
+        vnir_exposure_start     => vnir_exposure_start,
+        vnir_lvds               => vnir_lvds,
+        swir_control            => swir_control,
+        swir_sdi                => swir_sdi,
+        swir_sdo                => swir_sdo,
+        swir_sck                => swir_sck,
+        swir_cnv                => swir_cnv,
+        swir_sensor_clock_even  => swir_sensor_clock_even,
+        swir_sensor_clock_odd   => swir_sensor_clock_odd,
+        swir_sensor_reset_even  => swir_sensor_reset_even,
+        swir_sensor_reset_odd   => swir_sensor_reset_odd,
+        swir_Cf_select1         => swir_Cf_select1,
+        swir_Cf_select2         => swir_Cf_select2,
+        swir_AD_sp_even         => swir_AD_sp_even,
+        swir_AD_sp_odd          => swir_AD_sp_odd,
+        swir_AD_trig_even       => swir_AD_trig_even,
+        swir_AD_trig_odd        => swir_AD_trig_odd,
+        sdram_avalon_out        => sdram_avalon_out,
+        sdram_avalon_in         => sdram_avalon_in,
+        HPS_DDR3_ADDR           => HPS_DDR3_ADDR,
+        HPS_DDR3_BA             => HPS_DDR3_BA,
+        HPS_DDR3_CK_P           => HPS_DDR3_CK_P,
+        HPS_DDR3_CK_N           => HPS_DDR3_CK_N,
+        HPS_DDR3_CKE            => HPS_DDR3_CKE,
+        HPS_DDR3_CS_N           => HPS_DDR3_CS_N,
+        HPS_DDR3_RAS_N          => HPS_DDR3_RAS_N,
+        HPS_DDR3_CAS_N          => HPS_DDR3_CAS_N,
+        HPS_DDR3_WE_N           => HPS_DDR3_WE_N,
+        HPS_DDR3_RESET_N        => HPS_DDR3_RESET_N,
+        HPS_DDR3_DQ             => HPS_DDR3_DQ,
+        HPS_DDR3_DQS_P          => HPS_DDR3_DQS_P,
+        HPS_DDR3_DQS_N          => HPS_DDR3_DQS_N,
+        HPS_DDR3_ODT            => HPS_DDR3_ODT,
+        HPS_DDR3_DM             => HPS_DDR3_DM,
+        HPS_DDR3_RZQ            => HPS_DDR3_RZQ
     );
-end;
+
+end architecture rtl;

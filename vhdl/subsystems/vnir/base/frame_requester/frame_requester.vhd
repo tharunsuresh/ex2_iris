@@ -20,11 +20,36 @@ use ieee.numeric_std.all;
 
 use work.frame_requester_pkg.all;
 
+-- Controls the VNIR sensor in external-exposure mode using the sensor's
+-- frame_request and exposure_start inputs.
+--
+-- The control i/o of `frame_requester` are in the main clock domain,
+-- with the sensor interface being in the sensor clock domain.
+--
+-- `frame_requester` is configured by setting the desired fps, exposure
+-- time and frame count in its `config` input, then asserting
+-- `start_config` for a single clock cycle. When configuration is
+-- finished, `config_done` will be held high for a single clock cycle.
+-- 
+-- Once configured, a sequence of frame requests may be triggerd by
+-- setting `do_imaging` high for a single clock cycle. After it requests
+-- the desired number of frames, `frame_requester` holds `imaging_done`
+-- high for a single clock cycle to indicate that it has finished.
+--
+-- The frame requester assumes the sensor is configured in external
+-- exposure mode. In this mode, to capture a frame, the `exposure_start`
+-- input to the sensor must be pulsed, then after the desired exposure
+-- time (minus a fixed offset), `frame_request` must be pulsed to
+-- request the exposure stop and the sensor data be read out.
+--
+-- `frame_requester` is a wrapper for `frame_requester_mainclock`, which
+-- operates entirely in the main clock domain. `frame_requester`
+-- translates the sensor input signals (`frame_request` and
+-- `exposure_start`) to the sensor clock domain.
 entity frame_requester is
 generic (
     FRAGMENT_WIDTH      : integer;
-    CLOCKS_PER_SEC      : integer;
-    MAX_FPS             : integer
+    CLOCKS_PER_SEC      : integer
 );
 port (
     -- Interface w/ subsystems is clocked on the main clock
@@ -52,8 +77,7 @@ architecture rtl of frame_requester is
     component frame_requester_mainclock is
     generic (
         FRAGMENT_WIDTH      : integer := FRAGMENT_WIDTH;
-        CLOCKS_PER_SEC      : integer := CLOCKS_PER_SEC;
-        MAX_FPS             : integer := MAX_FPS
+        CLOCKS_PER_SEC      : integer := CLOCKS_PER_SEC
     );
     port (
         clock               : in std_logic;

@@ -8,12 +8,12 @@ use work.pulse_generator_pkg;
 package frame_requester_pkg is
 
     type config_t is record
-        num_frames : integer;
-        fps : integer;
-        exposure_time : integer;
+        num_frames      : integer;
+        frame_clocks    : integer;
+        exposure_clocks : integer;
     end record config_t;
 
-    type state_t is (RESET, IDLE, CONFIGURING, IMAGING);
+    type state_t is (IDLE, IMAGING);
 
     type status_t is record
         state           : state_t;

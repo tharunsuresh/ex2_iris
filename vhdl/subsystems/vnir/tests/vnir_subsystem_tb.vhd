@@ -312,7 +312,7 @@ begin
         start_config <= '1'; wait until rising_edge(clock); start_config <= '0'; 
         wait until rising_edge(clock) and config_done = '1';
 
-        image_config <= (duration => 10, fps => 200, exposure_time => 5);
+        image_config <= (length => 2, frame_clocks => 3000, exposure_clocks => 2000);
         start_image_config <= '1';  wait until rising_edge(clock); start_image_config <= '0'; 
         wait until rising_edge(clock) and num_rows /= 0;
         assert image_length_v = num_rows;
@@ -345,7 +345,8 @@ begin
         spi_in => spi.to_master,
         frame_request => frame_request,
         exposure_start => exposure_start,
-        lvds => lvds
+        lvds => lvds,
+        status => status
     );
 
 end tests;
