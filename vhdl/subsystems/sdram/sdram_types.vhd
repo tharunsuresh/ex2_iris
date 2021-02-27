@@ -23,7 +23,7 @@ use work.vnir;
 package sdram is
     --An SDRAM Address is a 29 bit signed, any negative addresses are invalid
     constant ADDRESS_LENGTH : integer := 29;
-    constant HEADER_LENGTH  : integer := 128;
+    constant HEADER_LENGTH  : integer := 160;
 
     --Creating the address type, a signed that shows a invalid address if negative
     subtype address_t is signed (ADDRESS_LENGTH-1 downto 0);

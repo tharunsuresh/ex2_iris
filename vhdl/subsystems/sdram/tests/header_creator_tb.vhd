@@ -54,7 +54,7 @@ begin
         timestamp       => timestamp,
         vnir_rows       => vnir_rows,
         swir_rows       => swir_rows,
-        sending_img     => sending_img,
+        img_config_done => sending_img,
         swir_img_header => swir_img_header,
         vnir_img_header => vnir_img_header);
     
@@ -94,5 +94,8 @@ begin
         wait until rising_edge(clock);
         wait until rising_edge(clock);
         wait until rising_edge(clock);
+        
+        wait;
+
     end process testing_process;
 end architecture;
