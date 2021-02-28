@@ -27,8 +27,8 @@ use work.fpga_types.all;
 use work.vnir;
 use work.vnir."/=";
 
---  KNOWN ISSUE: 
---      When transmitting, only transmits 159 rows instead of 160. 
+--  BUG: 
+--      When transmitting VNIR words, only transmits 159 words instead of 160. 
 --      It reads the last one out of the fifo but doesnt send it out
 
 entity imaging_buffer is
