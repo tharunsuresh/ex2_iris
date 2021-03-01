@@ -24,7 +24,17 @@ use work.vnir;
 use work.swir_types.all;
 use work.sdram;
 use work.img_buffer_pkg.all;
-use work.fpga_types.all;
+use work.fpga.all;
+
+-- VNIR functionality 
+-- during normal operation, the VNIR subsystem will emit three rows (red, blue and NIR) in a burst 
+-- when it finishes exposing a frame. The pixel integrator operates on one 16-pixel fragment per 
+-- clock cycle, so these rows will be separated by 2048/16=128 clock cycles during the burst. 
+-- The time between bursts depends on the desired frame-rate. It should be about equal to 
+-- (frame_clocks - 3*128), though there may be some inconsistencies here due to clock domain crossing.
+
+-- The behaviour described above is also the worst case. In some cases (at the beginning and end of an image) 
+-- the burst will consist of only 1 or 2 rows. They should still be separated by 128 clock cycles.
 
 entity imaging_buffer_tb is
 end entity;

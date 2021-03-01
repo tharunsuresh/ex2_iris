@@ -7,7 +7,7 @@ use work.avalonmm;
 use work.vnir;
 use work.swir_types.all;
 use work.sdram;
-use work.fpga_types.all;
+use work.fpga.all;
 
 entity partition_register is
     port(

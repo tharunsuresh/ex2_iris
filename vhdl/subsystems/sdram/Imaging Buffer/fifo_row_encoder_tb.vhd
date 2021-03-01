@@ -22,7 +22,7 @@ library work;
 use work.img_buffer_pkg.all;
 use work.swir_types.all;
 use work.sdram;
-use work.fpga_types.all;
+use work.fpga.all;
 
 use work.vnir;
 use work.vnir."/=";
@@ -31,40 +31,51 @@ entity fifo_row_encoder_tb is
 end entity fifo_row_encoder_tb;
 
 architecture rtl of fifo_row_encoder_tb is
-
-    signal clock                : std_logic := '0'; 
-    signal reset_n              : std_logic := '0'; 
+    
+    --Clock frequency is 20 MHz
+    constant clock_frequency    : integer := 20000000;
+    constant clock_period       : time := 1000 ms / clock_frequency;
+    
+    --Control inputs
+    signal clock                : std_logic := '1';
+    signal reset_n              : std_logic := '0';
 
     signal vnir_row             : vnir.row_t := (others => "1111111111");
-    signal vnir_row_fragment    : row_fragment_t;
- 
+    signal vnir_row_ready       : vnir.row_type_t;
+    signal vnir_row_fragment    : vnir_row_fragment_a;
+
 begin
+    clock <= not clock after clock_period / 2;
 
     inst: entity work.fifo_row_encoder port map(
         clock           => clock,
         reset_n         => reset_n,
         vnir_row        => vnir_row,
-        vnir_row_ready  => vnir.row_type_t,
+        vnir_row_ready  => vnir_row_ready,
         vnir_row_fragment => vnir_row_fragment
         );
 
     reset_process: process
     begin
         reset_n <= '0';
-        wait for 50 ns; 
+        wait for clock_period*2; 
         reset_n <= '1';
         wait;
     end process reset_process;
 
-    clock <= NOT clock after 10 ns; 
-
     process is 
     begin
 
+        vnir_row_ready <= vnir.ROW_NONE;
+        wait for clock_period*5;
+
+        vnir_row_ready <= vnir.ROW_RED;
         for i in 0 to vnir.ROW_WIDTH-1 loop
             vnir_row(i) <= to_unsigned(i, vnir.PIXEL_BITS);
         end loop;
+        wait for clock_period;
         
+        vnir_row_ready <= vnir.ROW_NONE;
         wait; 
 
     end process;
