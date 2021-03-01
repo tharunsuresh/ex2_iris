@@ -60,8 +60,8 @@ architecture rtl of imaging_buffer is
     signal fifo_clear           : std_logic;
 
     --signals for the first stage of the vnir pipeline
-    signal vnir_row_ready_i     : vnir.row_type_t;
-    signal vnir_row_fragment    : row_fragment_t;
+    signal vnir_row_ready_i      : vnir.row_type_t;
+    signal vnir_row_fragments    : vnir_row_fragment_a;
 
     --Signals for the first stage of the swir pipeline
     signal swir_bit_counter     : integer;
@@ -125,146 +125,145 @@ begin
         );
     end generate SWIR_FIFO_GEN;
     
-    -- row_encoder_inst: entity work.fifo_row_encoder port map(
-    --     clock           => clock,
-    --     reset_n         => reset_n,
-    --     vnir_row        => vnir_row,
-    --     vnir_row_ready  => vnir_row_ready,
-    --     fragment_out    => vnir_fragment_in,
-    --     vnir_row_fragment => vnir_row_fragment
-    --     );
+    row_encoder_inst: entity work.fifo_row_encoder port map(
+        clock           => clock,
+        reset_n         => reset_n,
+        vnir_row        => vnir_row,
+        vnir_row_ready  => vnir_row_ready,
+        vnir_row_fragments => vnir_row_fragments
+        );
 
-    -- pipeline : process (reset_n, clock) is
-    --     variable vnir_output_index  : integer := 0;
-    --     variable swir_output_index  : integer := 0;
+    pipeline : process (reset_n, clock) is
+        variable vnir_output_index  : integer := 0;
+        variable swir_output_index  : integer := 0;
         
-    -- begin
-    --     if (reset_n = '0') then
-    --         swir_bit_counter <= 0;
-    --         swir_fragment <= (others => '0');
+    begin
+        if (reset_n = '0') then
+            swir_bit_counter <= 0;
+            swir_fragment <= (others => '0');
 
-    --         swir_fragment_ready <= '0';
-    --         swir_store_counter <= 0;
+            swir_fragment_ready <= '0';
+            swir_store_counter <= 0;
 
-    --         swir_link_wrreq <= (others => '0');
-    --         swir_link_rdreq <= (others => '0');
-    --         swir_link_in <= (others => (others => '0'));
+            swir_link_wrreq <= (others => '0');
+            swir_link_rdreq <= (others => '0');
+            swir_link_in <= (others => (others => '0'));
             
-    --         --First stage resets
-    --         vnir_row_ready_i <= vnir.ROW_NONE;
+            --First stage resets
+            vnir_row_ready_i <= vnir.ROW_NONE;
 
-    --         --Second stage resets
-    --         row_type_buffer <= (others => vnir.ROW_NONE);
-    --         vnir_frag_counter <= 0;
-    --         vnir_store_counter <= 0;
+            --Second stage resets
+            row_type_buffer <= (others => vnir.ROW_NONE);
+            vnir_frag_counter <= 0;
+            vnir_store_counter <= 0;
 
-    --         --FIFO resets
-    --         vnir_link_in <= (others => (others => '0'));
-    --         vnir_link_rdreq <= (others => '0');
-    --         vnir_link_wrreq <= (others => '0');
+            --FIFO resets
+            vnir_link_in <= (others => (others => '0'));
+            vnir_link_rdreq <= (others => '0');
+            vnir_link_wrreq <= (others => '0');
             
-    --         vnir_output_index := 0;
-    --         swir_output_index := 0;
-    --         transmitting_i <= '0';
+            vnir_output_index := 0;
+            swir_output_index := 0;
+            transmitting_i <= '0';
 
-    --         fragment_out <= (others => '0');
-    --         fragment_type <= sdram.ROW_NONE;
+            fragment_out <= (others => '0');
+            fragment_type <= sdram.ROW_NONE;
         
-    --     elsif rising_edge(clock) then
+        elsif rising_edge(clock) then
 
-    --         --The first stage of the vnir pipeline, converting data taken from the vnir system into word sizes 
-    --         --compatible with fifo width -> this is done by fifo_row_encoder.vhd
-    --         if (vnir_row_ready /= vnir.ROW_NONE) then
-    --             vnir_row_ready_i <= vnir_row_ready;
-    --         end if;
+            --The first stage of the vnir pipeline, converting data taken from the vnir system into word sizes 
+            --compatible with fifo width -> this is done by fifo_row_encoder.vhd
+            if (vnir_row_ready /= vnir.ROW_NONE) then
+                vnir_row_ready_i <= vnir_row_ready;
+            end if;
 
-    --         --Second stage of the VNIR pipeline, storing data into the fifo chain
-    --         if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_fragment_in = '1') then
-    --             vnir_link_in(vnir_store_counter) <= vnir_row_fragment;
-    --             vnir_link_wrreq(vnir_store_counter) <= '1';
-    --             vnir_frag_counter <= vnir_frag_counter + 1;
+            --Second stage of the VNIR pipeline, storing data into the fifo chain
+            if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_fragment_in = '1') then
+                vnir_link_in(vnir_store_counter) <= vnir_row_fragments(vnir_frag_counter);
+                vnir_link_wrreq(vnir_store_counter) <= '1';
+                vnir_frag_counter <= vnir_frag_counter + 1;
 
-    --             --If it's the last word getting stored, adding the type to the type buffer
-    --             if (vnir_frag_counter = VNIR_FIFO_DEPTH-1) then
-    --                 row_type_buffer(vnir_store_counter) <= vnir_row_ready_i;
-    --                 vnir_store_counter <= vnir_store_counter + 1;
-    --                 num_store_vnir_rows <= num_store_vnir_rows + 1;
-    --             end if;
+                --If it's the last word getting stored, adding the type to the type buffer
+                if (vnir_frag_counter = VNIR_FIFO_DEPTH-1) then
+                    row_type_buffer(vnir_store_counter) <= vnir_row_ready_i;
+                    vnir_store_counter <= vnir_store_counter + 1;
+                    num_store_vnir_rows <= num_store_vnir_rows + 1;
+                end if;
 
-    --         else
-    --             vnir_frag_counter <= 0;
-    --             vnir_link_in <= (others => (others => '0'));
-    --             vnir_link_wrreq <= (others => '0');
-    --         end if;
+            else
+                vnir_frag_counter <= 0;
+                vnir_link_in <= (others => (others => '0'));
+                vnir_link_wrreq <= (others => '0');
+            end if;
         
-    --         --The first stage of the swir_pipeline, accumulating pixels to fill a word
-    --         if (swir_pixel_ready = '1') then
+            --The first stage of the swir_pipeline, accumulating pixels to fill a word
+            if (swir_pixel_ready = '1') then
         
-    --             if (swir_bit_counter = FIFO_WORD_LENGTH) then
-    --                 swir_fragment_ready <= '1';
-    --                 swir_bit_counter <= 0;
-    --             else
-    --                 swir_fragment(swir_bit_counter + SWIR_PIXEL_BITS - 1 downto swir_bit_counter) <= std_logic_vector(swir_pixel);
-    --                 swir_bit_counter <= swir_bit_counter + SWIR_PIXEL_BITS;
-    --             end if;
-    --         end if;
+                if (swir_bit_counter = FIFO_WORD_LENGTH) then
+                    swir_fragment_ready <= '1';
+                    swir_bit_counter <= 0;
+                else
+                    swir_fragment(swir_bit_counter + SWIR_PIXEL_BITS - 1 downto swir_bit_counter) <= std_logic_vector(swir_pixel);
+                    swir_bit_counter <= swir_bit_counter + SWIR_PIXEL_BITS;
+                end if;
+            end if;
         
-    --         --The second stage of the swir pipeline, putting the fragment into the fifo chain
-    --         if (swir_fragment_ready = '1') then
-    --             swir_link_wrreq(swir_store_counter) <= '1';
-    --             swir_link_in(swir_store_counter) <= swir_fragment;
-    --             swir_fragment_ready <= '0';
-    --         else
-    --             swir_link_wrreq <= (others => '0');
-    --             swir_link_in <= (others => (others => '0'));
-    --         end if;
+            --The second stage of the swir pipeline, putting the fragment into the fifo chain
+            if (swir_fragment_ready = '1') then
+                swir_link_wrreq(swir_store_counter) <= '1';
+                swir_link_in(swir_store_counter) <= swir_fragment;
+                swir_fragment_ready <= '0';
+            else
+                swir_link_wrreq <= (others => '0');
+                swir_link_in <= (others => (others => '0'));
+            end if;
         
-    --         --Checking to see if a fifo is full and incrementing the store counter
-    --         if (swir_fifo_full(swir_store_counter) = '1') then
-    --             swir_store_counter <= swir_store_counter + 1;
-    --             num_store_swir_rows <= num_store_swir_rows + 1;
-    --         end if;
+            --Checking to see if a fifo is full and incrementing the store counter
+            if (swir_fifo_full(swir_store_counter) = '1') then
+                swir_store_counter <= swir_store_counter + 1;
+                num_store_swir_rows <= num_store_swir_rows + 1;
+            end if;
             
-    --         --The final stage
-    --         vnir_output_index := vnir_store_counter - num_store_vnir_rows;
-    --         swir_output_index := swir_store_counter - num_store_swir_rows;
+            --The final stage
+            vnir_output_index := vnir_store_counter - num_store_vnir_rows;
+            swir_output_index := swir_store_counter - num_store_swir_rows;
         
-    --         if (row_request = '1') then
-    --             transmitting_i <= '1';
-    --         end if;
+            if (row_request = '1') then
+                transmitting_i <= '1';
+            end if;
         
-    --         if (transmitting_i = '1') then
-    --             --These first two branches set the output to the correct fifo
-    --             if (num_store_vnir_rows >= num_store_swir_rows and num_store_vnir_rows /= 0 and vnir_fifo_empty(vnir_output_index) = '0') then
-    --                 vnir_link_rdreq(vnir_output_index) <= '1';
-    --                 fragment_out <= vnir_link_out(vnir_output_index);
-    --                 fragment_type <= sdram.sdram_type(row_type_buffer(vnir_output_index));
+            if (transmitting_i = '1') then
+                --These first two branches set the output to the correct fifo
+                if (num_store_vnir_rows >= num_store_swir_rows and num_store_vnir_rows /= 0 and vnir_fifo_empty(vnir_output_index) = '0') then
+                    vnir_link_rdreq(vnir_output_index) <= '1';
+                    fragment_out <= vnir_link_out(vnir_output_index);
+                    fragment_type <= sdram.sdram_type(row_type_buffer(vnir_output_index));
         
-    --             elsif (num_store_swir_rows > num_store_vnir_rows and swir_fifo_empty(swir_output_index) = '0') then
-    --                 swir_link_rdreq(swir_output_index) <= '1';
-    --                 fragment_out <= swir_link_out(swir_output_index);
-    --                 fragment_type <= sdram.ROW_SWIR;
+                elsif (num_store_swir_rows > num_store_vnir_rows and swir_fifo_empty(swir_output_index) = '0') then
+                    swir_link_rdreq(swir_output_index) <= '1';
+                    fragment_out <= swir_link_out(swir_output_index);
+                    fragment_type <= sdram.ROW_SWIR;
         
-    --             --These next two branches reset the output and increment the correct buffer
-    --             elsif (vnir_fifo_empty(vnir_output_index) = '1') then
-    --                 vnir_link_rdreq(vnir_output_index) <= '0';
-    --                 num_store_vnir_rows <= num_store_vnir_rows - 1;
-    --                 transmitting_i <= '0';
+                --These next two branches reset the output and increment the correct buffer
+                elsif (vnir_fifo_empty(vnir_output_index) = '1') then
+                    vnir_link_rdreq(vnir_output_index) <= '0';
+                    num_store_vnir_rows <= num_store_vnir_rows - 1;
+                    transmitting_i <= '0';
         
-    --             elsif (swir_fifo_empty(swir_output_index) = '1') then
-    --                 swir_link_rdreq(swir_output_index) <= '0';
-    --                 num_store_swir_rows <= num_store_swir_rows - 1;
-    --                 transmitting_i <= '0';
-    --             end if;
-    --         else
-    --             fragment_out <= (others => '0');
-    --             fragment_type <= sdram.ROW_NONE;
-    --         end if;
-    --     end if;
-    -- end process pipeline;
+                elsif (swir_fifo_empty(swir_output_index) = '1') then
+                    swir_link_rdreq(swir_output_index) <= '0';
+                    num_store_swir_rows <= num_store_swir_rows - 1;
+                    transmitting_i <= '0';
+                end if;
+            else
+                fragment_out <= (others => '0');
+                fragment_type <= sdram.ROW_NONE;
+            end if;
+        end if;
+    end process pipeline;
 
     
 
-    -- fifo_clear <= '1' when reset_n = '0' else '0';
-    -- transmitting <= transmitting_i;
+    fifo_clear <= '1' when reset_n = '0' else '0';
+    transmitting <= transmitting_i;
 end architecture;

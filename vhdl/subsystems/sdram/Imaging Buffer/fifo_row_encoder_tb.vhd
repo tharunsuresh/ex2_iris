@@ -42,7 +42,7 @@ architecture rtl of fifo_row_encoder_tb is
 
     signal vnir_row             : vnir.row_t := (others => "1111111111");
     signal vnir_row_ready       : vnir.row_type_t;
-    signal vnir_row_fragment    : vnir_row_fragment_a;
+    signal vnir_row_fragments    : vnir_row_fragment_a;
 
 begin
     clock <= not clock after clock_period / 2;
@@ -52,7 +52,7 @@ begin
         reset_n         => reset_n,
         vnir_row        => vnir_row,
         vnir_row_ready  => vnir_row_ready,
-        vnir_row_fragment => vnir_row_fragment
+        vnir_row_fragments => vnir_row_fragments
         );
 
     reset_process: process
