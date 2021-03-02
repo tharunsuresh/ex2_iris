@@ -45,7 +45,7 @@ add wave -position end sim:/imaging_buffer_tb/imaging_buffer/row_encoder_inst/*
 
 # add wave -unsigned -position end sim:/fifo_row_encoder_tb/vnir_row
 # add wave -position end sim:/fifo_row_encoder_tb/inst/*
-# add wave -position end sim:/fifo_row_encoder_tb/inst/vnir_row_fragment
+# add wave -position end sim:/fifo_row_encoder_tb/inst/vnir_row_fragments
 
 
 run 20 us;

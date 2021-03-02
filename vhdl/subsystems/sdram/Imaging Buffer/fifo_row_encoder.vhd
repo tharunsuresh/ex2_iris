@@ -48,55 +48,60 @@ begin
         elsif rising_edge(clock) then
             if (vnir_row_ready /= vnir.ROW_NONE) then    
 
-                -- 64 pixels can be put into 5 consecutive fifo words. There are 32 of these groups in total (32*64 = 2048)            
-                for five_row_group in 0 to 31 loop  
+                -- 64 VNIR pixels (10 bits/pixel) can be put into 5 consecutive fifo words of 128 bits each.
+                -- Since 128 is not a multiple of 10, some pixels need to be split up. 
+                -- Every 5 words (128 bits/word * 5 words = 640 bits) we get to a multiple of 10, so we can put
+                -- 64 complete pixels every 5 words.
+
+                -- There are 32 of these 5-word groups in total (64 pixels/group * 32 groups = 2048 pixels total)            
+                for five_word_group in 0 to 31 loop  
                     -- first word
                     for i in 0 to 11 loop    -- the first 120 bits are put into the fifo word (12 complete pixels)
-                        vnir_row_fragments(5*five_row_group)((10*(i+1))-1 downto 10*i) <= std_logic_vector(vnir_row(64*five_row_group+i));
+                        vnir_row_fragments(5*five_word_group)((10*(i+1))-1 downto 10*i) <= std_logic_vector(vnir_row(64*five_word_group+i));
                     end loop;
                     for i in 120 to 127 loop -- final 8 bits of the word are the first 8 bits of the next (13th) pixel to make up the 128 bits
-                        vnir_row_fragments(5*five_row_group)(i) <= vnir_row(64*five_row_group+12)(i-120);
+                        vnir_row_fragments(5*five_word_group)(i) <= vnir_row(64*five_word_group+12)(i-120);
                     end loop;
                     
                     -- second word
                     for i in 0 to 1 loop     -- the next word contains the last 2 pixels from the 13th pixel
-                        vnir_row_fragments(5*five_row_group+1)(i) <= vnir_row(64*five_row_group+12)(8+i);  
+                        vnir_row_fragments(5*five_word_group+1)(i) <= vnir_row(64*five_word_group+12)(8+i);  
                     end loop;
                     for i in 0 to 11 loop    -- 14th to 25th pixels
-                        vnir_row_fragments(5*five_row_group+1)(((10*(i+1))+1) downto 10*i+2) <= std_logic_vector(vnir_row(64*five_row_group+13+i));
+                        vnir_row_fragments(5*five_word_group+1)(((10*(i+1))+1) downto 10*i+2) <= std_logic_vector(vnir_row(64*five_word_group+13+i));
                     end loop;
                     for i in 122 to 127 loop -- first 6 bits of the 26th pixel
-                        vnir_row_fragments(5*five_row_group+1)(i) <= vnir_row(64*five_row_group+25)(i-122);
+                        vnir_row_fragments(5*five_word_group+1)(i) <= vnir_row(64*five_word_group+25)(i-122);
                     end loop;
                 
                     --third word 
                     for i in 0 to 3 loop     -- last 4 bits of the 26th pixel
-                        vnir_row_fragments(5*five_row_group+2)(i) <= vnir_row(64*five_row_group+25)(6+i);  
+                        vnir_row_fragments(5*five_word_group+2)(i) <= vnir_row(64*five_word_group+25)(6+i);  
                     end loop;
                     for i in 0 to 11 loop    -- 27th to 38th pixels
-                        vnir_row_fragments(5*five_row_group+2)(((10*(i+1))+3) downto 10*i+4) <= std_logic_vector(vnir_row(64*five_row_group+26+i));
+                        vnir_row_fragments(5*five_word_group+2)(((10*(i+1))+3) downto 10*i+4) <= std_logic_vector(vnir_row(64*five_word_group+26+i));
                     end loop;
                     for i in 124 to 127 loop -- 4 bits of the 39th pixel
-                        vnir_row_fragments(5*five_row_group+2)(i) <= vnir_row(64*five_row_group+38)(i-124);
+                        vnir_row_fragments(5*five_word_group+2)(i) <= vnir_row(64*five_word_group+38)(i-124);
                     end loop;
                 
                     -- fourth word
                     for i in 0 to 5 loop     -- rest of the 39th pixel
-                        vnir_row_fragments(5*five_row_group+3)(i) <= vnir_row(64*five_row_group+38)(4+i);  
+                        vnir_row_fragments(5*five_word_group+3)(i) <= vnir_row(64*five_word_group+38)(4+i);  
                     end loop;
                     for i in 0 to 11 loop    -- 40th to 51st pixels 
-                        vnir_row_fragments(5*five_row_group+3)(((10*(i+1))+5) downto 10*i+6) <= std_logic_vector(vnir_row(64*five_row_group+39+i));
+                        vnir_row_fragments(5*five_word_group+3)(((10*(i+1))+5) downto 10*i+6) <= std_logic_vector(vnir_row(64*five_word_group+39+i));
                     end loop;
                     for i in 126 to 127 loop -- 52nd pixel
-                        vnir_row_fragments(5*five_row_group+3)(i) <= vnir_row(64*five_row_group+51)(i-126);
+                        vnir_row_fragments(5*five_word_group+3)(i) <= vnir_row(64*five_word_group+51)(i-126);
                     end loop;
 
                     --fifth word
                     for i in 0 to 7 loop     -- 52nd pixel
-                        vnir_row_fragments(5*five_row_group+4)(i) <= vnir_row(64*five_row_group+51)(2+i);
+                        vnir_row_fragments(5*five_word_group+4)(i) <= vnir_row(64*five_word_group+51)(2+i);
                     end loop;
                     for i in 0 to 11 loop    -- 53rd to 64th pixels
-                        vnir_row_fragments(5*five_row_group+4)((10*(i+1))+7 downto 10*i+8) <= std_logic_vector(vnir_row(64*five_row_group+52+i));
+                        vnir_row_fragments(5*five_word_group+4)((10*(i+1))+7 downto 10*i+8) <= std_logic_vector(vnir_row(64*five_word_group+52+i));
                     end loop;   
                 end loop;
             else 

@@ -54,9 +54,7 @@ entity imaging_buffer is
 end entity imaging_buffer;
 
 architecture rtl of imaging_buffer is
-    --SWIR words are 64 bits (4 pixel per word) 
-    --VNIR words are 160 bits (16 pixels per word)
-
+    
     signal fifo_clear           : std_logic;
 
     --signals for the first stage of the vnir pipeline
@@ -67,9 +65,9 @@ architecture rtl of imaging_buffer is
     signal swir_bit_counter     : integer;
     signal swir_fragment        : row_fragment_t;
 
-    --signals for the second stage of the vnir pipeline
-    signal vnir_fragment_in     : std_logic;
+    --signals for the second stage of the vnir pipeline    
     signal row_type_buffer      : row_type_buffer_a;
+    signal row_buffer_a         : row_buffer_a;
     signal vnir_frag_counter    : natural range 0 to VNIR_FIFO_DEPTH;
     signal vnir_store_counter   : natural range 0 to NUM_VNIR_ROW_FIFO;
     signal num_store_vnir_rows  : natural range 0 to NUM_VNIR_ROW_FIFO;
@@ -95,11 +93,9 @@ architecture rtl of imaging_buffer is
     signal vnir_link_out        : vnir_link_a;
 
     signal transmitting_i       : std_logic;
+
 begin
-    --Generating a chain of FIFOs for both the vnir & swir rows, 
-    --each FIFO capable of holding 10 rows of each type, words of 128 bits each
-    --NOTE: The ip doesn't allow for choosing a FIFO with a depth of 160 words, so
-    --the almost full signal is used in the full signal's place
+
     VNIR_FIFO_GEN : for i in 0 to NUM_VNIR_ROW_FIFO-1 generate
         VNIR_FIFO : entity work.VNIR_ROW_FIFO port map (
             aclr    => fifo_clear,
@@ -177,8 +173,16 @@ begin
                 vnir_row_ready_i <= vnir_row_ready;
             end if;
 
+            -- first stage is done. use second stage to accept the fifo array into one of three signals
+            -- have three flags to say that array needs to be put into fifo
+            -- if flag is '1' then put into fifo and then turn off flag
+
+            -- need to have 3 fifos. determine which type using case statement (using vnir_row_ready_i)
+            -- and then put it into the appropriate fifo. better if this is a state machine? 
+            -- or maybe have three second stages? or loop?
+
             --Second stage of the VNIR pipeline, storing data into the fifo chain
-            if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_fragment_in = '1') then
+            if (vnir_frag_counter < VNIR_FIFO_DEPTH and vnir_row_ready_i /= vnir.ROW_NONE) then
                 vnir_link_in(vnir_store_counter) <= vnir_row_fragments(vnir_frag_counter);
                 vnir_link_wrreq(vnir_store_counter) <= '1';
                 vnir_frag_counter <= vnir_frag_counter + 1;
