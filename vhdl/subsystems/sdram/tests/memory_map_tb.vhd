@@ -7,7 +7,7 @@ use work.spi_types.all;
 use work.vnir;
 use work.swir_types.all;
 use work.sdram.all;
-use work.fpga_types.all;
+use work.fpga.all;
 
 entity memory_map_tb is
 end entity;

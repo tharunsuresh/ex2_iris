@@ -8,7 +8,7 @@ use work.sdram;
 
 use work.img_buffer_pkg.all;
 use work.swir_types.all;
-use work.fpga_types.all;
+use work.fpga.all;
 
 entity command_creator_tb is
 end entity command_creator_tb;
