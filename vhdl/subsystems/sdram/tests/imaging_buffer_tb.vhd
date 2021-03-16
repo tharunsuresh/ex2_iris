@@ -26,16 +26,6 @@ use work.sdram;
 use work.img_buffer_pkg.all;
 use work.fpga.all;
 
--- VNIR functionality 
--- during normal operation, the VNIR subsystem will emit three rows (red, blue and NIR) in a burst 
--- when it finishes exposing a frame. The pixel integrator operates on one 16-pixel fragment per 
--- clock cycle, so these rows will be separated by 2048/16=128 clock cycles during the burst. 
--- The time between bursts depends on the desired frame-rate. It should be about equal to 
--- (frame_clocks - 3*128), though there may be some inconsistencies here due to clock domain crossing.
-
--- The behaviour described above is also the worst case. In some cases (at the beginning and end of an image) 
--- the burst will consist of only 1 or 2 rows. They should still be separated by 128 clock cycles.
-
 entity imaging_buffer_tb is
 end entity;
 
@@ -43,6 +33,10 @@ architecture sim of imaging_buffer_tb is
     --Clock frequency is 20 MHz
     constant clock_frequency    : integer := 20000000;
     constant clock_period       : time := 1000 ms / clock_frequency;
+    constant reset_period       : time := clock_period * 4;
+
+    constant vnir_row_clocks    : time := clock_period * 128;
+    constant vnir_frame_clocks  : time := clock_period * 3000;
     
     --Control inputs
     signal clock                : std_logic := '1';
@@ -63,7 +57,6 @@ architecture sim of imaging_buffer_tb is
 
 
 begin
-    clock <= not clock after clock_period / 2;
 
     imaging_buffer : entity work.imaging_buffer port map (
         clock               => clock,
@@ -78,62 +71,76 @@ begin
         vnir_row_ready      => vnir_row_rdy
 		  );
 
-    process is
+    clock <= not clock after clock_period / 2;
+
+    reset_process: process
+    begin
+        reset_n <= '0';
+        wait for reset_period; 
+        reset_n <= '1';
+        wait;
+    end process reset_process;
+
+    -- VNIR functionality 
+    -- during normal operation, the VNIR subsystem will emit three rows (red, blue and NIR) in a burst 
+    -- when it finishes exposing a frame. The pixel integrator operates on one 16-pixel fragment per 
+    -- clock cycle, so these rows will be separated by 2048/16=128 clock cycles during the burst. 
+    -- The time between bursts depends on the desired frame-rate. It should be about equal to 
+    -- (frame_clocks - 3*128), though there may be some inconsistencies here due to clock domain crossing.
+
+    -- The behaviour described above is also the worst case. In some cases (at the beginning and end of an image) 
+    -- the burst will consist of only 1 or 2 rows. They should still be separated by 128 clock cycles.
+
+    vnir_process: process
     begin
         for i in 0 to 2047 loop
             vnir_row(i) <= to_unsigned(i, 10);
         end loop;
+        wait for reset_period; 
 
-        wait for clock_period * 4;
-        reset_n <= '1';
+        for i in 1 to 10 loop
+            vnir_row_rdy <= vnir.ROW_RED;
+            wait until rising_edge(clock);
+            vnir_row_rdy <= vnir.ROW_NONE;
+            wait for vnir_row_clocks;
 
-        wait for clock_period * 4;
-        vnir_row_rdy <= vnir.ROW_RED;
-        swir_pxl_rdy <= '1';
+            vnir_row_rdy <= vnir.ROW_BLUE;
+            wait until rising_edge(clock);
+            vnir_row_rdy <= vnir.ROW_NONE;
+            wait for vnir_row_clocks;
 
-        wait until rising_edge(clock);
-        vnir_row_rdy <= vnir.ROW_NONE;
-        swir_pxl_rdy <= '0';
-
-        wait for clock_period * 4;
-        swir_pxl_rdy <= '1';
-        wait until rising_edge(clock);
-        swir_pxl_rdy <= '0';
-
-        wait for clock_period * 4;
-        swir_pxl_rdy <= '1';
-        wait until rising_edge(clock);
-        swir_pxl_rdy <= '0';
-
-        wait for clock_period * 4;
-        swir_pxl_rdy <= '1';
-        wait until rising_edge(clock);
-        swir_pxl_rdy <= '0';
-
-        wait for clock_period * 4;
-        swir_pxl_rdy <= '1';
-        wait until rising_edge(clock);
-        swir_pxl_rdy <= '0';
-
-        wait for clock_period * 4;
-        swir_pxl_rdy <= '1';
-        wait until rising_edge(clock);
-        swir_pxl_rdy <= '0';
-
-        wait for clock_period * 4;
-        swir_pxl_rdy <= '1';
-        wait until rising_edge(clock);
-        swir_pxl_rdy <= '0';
-        
-        wait for clock_period * 170;
-
-        row_req <= '1';
-        wait until rising_edge(clock);
-        row_req <= '0';
-        
+            vnir_row_rdy <= vnir.ROW_NIR;
+            wait until rising_edge(clock);
+            vnir_row_rdy <= vnir.ROW_NONE;
+            wait for (vnir_frame_clocks-3*vnir_row_clocks);
+        end loop;
         wait;
+    end process vnir_process;
 
+    swir_process: process is
+    begin
+        wait for reset_period; 
+        for i in 1 to 1000 loop
+            wait for clock_period * 4;
+            swir_pxl_rdy <= '1';
+            swir_pixel <= to_unsigned(i, swir_pixel'length);
 
+            wait until rising_edge(clock);
+            swir_pxl_rdy <= '0';   
+            swir_pixel <= (others => '0');
+        end loop;
+        wait;
+    end process swir_process;
 
-    end process;
+    transmit_process: process is 
+    begin
+        for i in 1 to 10 loop
+            wait for clock_period * 170;
+            row_req <= '1';
+            wait until rising_edge(clock);
+            row_req <= '0';
+        end loop;
+        wait;
+    end process transmit_process; 
+
 end architecture;

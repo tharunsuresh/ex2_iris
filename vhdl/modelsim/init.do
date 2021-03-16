@@ -45,5 +45,5 @@ add wave -position end sim:/imaging_buffer_tb/imaging_buffer/*
 # add wave -position end sim:/fifo_row_encoder_tb/inst/*
 # add wave -position end sim:/fifo_row_encoder_tb/inst/vnir_row_fragments
 
-run 20 us;
+run 50 us;
 wave zoom full
