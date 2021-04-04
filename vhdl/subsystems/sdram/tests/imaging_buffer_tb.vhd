@@ -30,10 +30,13 @@ entity imaging_buffer_tb is
 end entity;
 
 architecture sim of imaging_buffer_tb is
-    --Clock frequency is 20 MHz
-    constant clock_frequency    : integer := 20000000;
+
+    constant clock_frequency    : integer := 20000000;  -- 20 MHz
     constant clock_period       : time := 1000 ms / clock_frequency;
     constant reset_period       : time := clock_period * 4;
+
+    constant swir_clk_freq      : integer := 781250;    -- 0.78125 MHz
+    constant swir_clk_period    : time := 1000 ms / swir_clk_freq;
 
     constant vnir_row_clocks    : time := clock_period * 128;
     constant vnir_frame_clocks  : time := clock_period * 3000;
@@ -41,19 +44,20 @@ architecture sim of imaging_buffer_tb is
     --Control inputs
     signal clock                : std_logic := '1';
     signal reset_n              : std_logic := '0';
+    signal swir_clock           : std_logic := '1';
 
     --Non-control inputs
     signal vnir_row             : vnir.row_t := (others => "1111111111");
-    signal swir_pixel           : swir_pixel_t := "1010101010101010";
-
-    signal fragment_out         : row_fragment_t;
-    signal row_type             : sdram.row_type_t;
-    signal row_req              : std_logic := '0';
-    signal transmitting_o       : std_logic;
-
-    --Outputs
-    signal swir_pxl_rdy         : std_logic := '0';
     signal vnir_row_rdy         : vnir.row_type_t := vnir.ROW_NONE;
+
+    signal swir_pixel           : swir_pixel_t := "1010101010101010";
+    signal swir_pxl_rdy         : std_logic := '0';
+
+    -- Imaging Buffer <=> Command Creator 
+    signal row_req              : std_logic := '0'; -- input row request
+    signal transmitting_o       : std_logic;        -- output flag
+    signal fragment_out         : row_fragment_t;   -- output row fragment
+    signal row_type             : sdram.row_type_t; -- output row type
 
 
 begin
@@ -72,6 +76,7 @@ begin
 		  );
 
     clock <= not clock after clock_period / 2;
+    swir_clock <= not swir_clock after swir_clk_period / 2;
 
     reset_process: process
     begin
@@ -117,17 +122,25 @@ begin
         wait;
     end process vnir_process;
 
+    -- Duration of each swir pixel: worst case: ~1000 ns; normal: ~1300 ns
+    -- A row is 512 pixels, so takes 512 swir clock cycles to arrive, 
+    -- where the swir clock is 0.78125 MHz. The time between rows is ~30 clock cycles
+    -- swir_pxl_ready is sent on the 50MHz clock, same as the pixel.
+    
     swir_process: process is
     begin
         wait for reset_period; 
-        for i in 1 to 1000 loop
-            wait for clock_period * 4;
-            swir_pxl_rdy <= '1';
-            swir_pixel <= to_unsigned(i, swir_pixel'length);
+        for i in 1 to 10 loop 
+            for i in 1 to 512 loop -- one row
+                wait until rising_edge(swir_clock);
+                swir_pxl_rdy <= '1';
+                swir_pixel <= to_unsigned(i, swir_pixel'length);
 
-            wait until rising_edge(clock);
-            swir_pxl_rdy <= '0';   
-            swir_pixel <= (others => '0');
+                wait until falling_edge(swir_clock);
+                swir_pxl_rdy <= '0';   
+                swir_pixel <= (others => '0');
+            end loop;
+            wait for swir_clk_period * 25; -- time between rows
         end loop;
         wait;
     end process swir_process;

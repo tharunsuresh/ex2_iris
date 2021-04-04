@@ -5,6 +5,7 @@ quit -sim
 
 # add & compile packages
 vcom -2008 -explicit ../util/types.vhd
+vcom -2008 -explicit ../util/edge_detector.vhd
 vcom -2008 -explicit ../util/pulse_genenerator.vhd
 vcom -2008 -explicit ../subsystems/swir/swir_types.vhd
 vcom -2008 -explicit ../subsystems/fpga/fpga_types.vhd
@@ -36,6 +37,7 @@ vcom -2008 -explicit ../subsystems/sdram/tests/imaging_buffer_tb.vhd
 vsim -gui work.imaging_buffer_tb
 
 # add wave -unsigned -position end sim:/header_creator_tb/i_header_creator/*
+add wave -position 1 sim:/imaging_buffer_tb/*
 add wave -unsigned -position end sim:/imaging_buffer_tb/vnir_row
 add wave -position end sim:/imaging_buffer_tb/imaging_buffer/vnir_row_fragments
 add wave -position end sim:/imaging_buffer_tb/imaging_buffer/row_buffer
