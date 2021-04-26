@@ -64,14 +64,6 @@ architecture rtl of imaging_buffer is
     
     signal fifo_clear           : std_logic;
     
-    -- SWIR Input latches
-    signal swir_pixel_meta      : swir_pixel_t;
-    signal swir_pixel_i         : swir_pixel_t;
-
-    signal swir_pixel_ready_meta    : std_logic;
-    signal swir_pixel_ready_i       : std_logic;
-    signal swir_pixel_ready_pos_edge : std_logic;
-
     --signals for the first stage of the vnir pipeline
     signal vnir_row_ready_i      : vnir.row_type_t;
     signal new_row_in            : std_logic;
@@ -113,13 +105,6 @@ architecture rtl of imaging_buffer is
     signal transmitting_i       : std_logic;
 
 begin
-
-    swir_input_detector: entity work.edge_detector port map(
-        clk         => clock,
-        reset_n     => reset_n,
-        ip          => swir_pixel_ready_i,
-        edge_flag   => swir_pixel_ready_pos_edge
-    );
     
     VNIR_FIFO_GEN : for i in 0 to NUM_VNIR_ROW_FIFO-1 generate
         VNIR_FIFO : entity work.VNIR_ROW_FIFO port map (
@@ -152,6 +137,8 @@ begin
         
     begin
         if (reset_n = '0') then
+            
+            -- SWIR
             swir_bit_counter <= 0;
             swir_fragment <= (others => '0');
 
@@ -162,7 +149,8 @@ begin
             swir_link_rdreq <= (others => '0');
             swir_link_in <= (others => (others => '0'));
             
-            --First stage resets
+            -- VNIR 
+            -- First stage resets
             vnir_row_ready_i <= vnir.ROW_NONE;
             new_row_in       <= '0';
             row_type_stored  <= (others => '0');
@@ -182,7 +170,7 @@ begin
             swir_output_index := 0;
             transmitting_i <= '0';
 
-            -- outputs 
+            -- Outputs 
             transmitting <= '0';
             fragment_out <= (others => '0');
             fragment_type <= sdram.ROW_NONE;
@@ -294,16 +282,9 @@ begin
                 end if;
             end loop;
 
-            -- Latching SWIR inputs from slower clock
-            swir_pixel_meta <= swir_pixel; -- Metastable input 
-            swir_pixel_i <= swir_pixel_meta; 
-
-            swir_pixel_ready_meta <= swir_pixel_ready;
-            swir_pixel_ready_i <= swir_pixel_ready_meta;
-
             --The first stage of the swir_pipeline, accumulating pixels to fill a word
-            if (swir_pixel_ready_pos_edge = '1') then 
-                swir_fragment(swir_bit_counter + SWIR_PIXEL_BITS - 1 downto swir_bit_counter) <= std_logic_vector(swir_pixel_i);
+            if (swir_pixel_ready = '1') then 
+                swir_fragment(swir_bit_counter + SWIR_PIXEL_BITS - 1 downto swir_bit_counter) <= std_logic_vector(swir_pixel);
                 swir_bit_counter <= swir_bit_counter + SWIR_PIXEL_BITS;
             end if;
         
@@ -333,7 +314,7 @@ begin
             
             if (transmitting_i = '1') then
                 if (swir_store_counter /= 0) then
-                    if swir_fifo_empty = '0' then
+                    if swir_fifo_empty(swir_output_index) = '0' then
                         swir_link_rdreq(swir_output_index) <= '1';
                         fragment_out <= swir_link_out(swir_output_index);
                         fragment_type <= sdram.ROW_SWIR;

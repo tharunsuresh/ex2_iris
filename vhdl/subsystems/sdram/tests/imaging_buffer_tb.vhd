@@ -33,23 +33,22 @@ architecture sim of imaging_buffer_tb is
 
     constant clock_frequency    : integer := 20000000;  -- 20 MHz
     constant clock_period       : time := 1000 ms / clock_frequency;
+
     constant reset_period       : time := clock_period * 4;
-
-    constant swir_clk_freq      : integer := 781250;    -- 0.78125 MHz
-    constant swir_clk_period    : time := 1000 ms / swir_clk_freq;
-
-    constant vnir_row_clocks    : time := clock_period * 128;
-    constant vnir_frame_clocks  : time := clock_period * 3000;
     
-    --Control inputs
+    constant vnir_row_clocks    : time := clock_period * 128; -- clock cycles between VNIR rows
+    constant vnir_frame_clocks  : time := clock_period * 3000;
+
+    constant swir_pxl_clocks    : time := clock_period * 64; -- clock cycles between SWIR pixels (1 clock cycle in 0.78125MHz clock, 50/0.78125 = 64)
+    constant swir_row_clocks    : time := swir_pxl_clocks * 25; -- clock cycles between SWIR rows
+    
+    -- Control inputs
     signal clock                : std_logic := '1';
     signal reset_n              : std_logic := '0';
-    signal swir_clock           : std_logic := '1';
 
-    --Non-control inputs
+    -- Data inputs
     signal vnir_row             : vnir.row_t := (others => "1111111111");
     signal vnir_row_rdy         : vnir.row_type_t := vnir.ROW_NONE;
-
     signal swir_pixel           : swir_pixel_t := "1010101010101010";
     signal swir_pxl_rdy         : std_logic := '0';
 
@@ -76,7 +75,6 @@ begin
 		  );
 
     clock <= not clock after clock_period / 2;
-    swir_clock <= not swir_clock after swir_clk_period / 2;
 
     reset_process: process
     begin
@@ -131,23 +129,25 @@ begin
     begin
         wait for reset_period; 
         for i in 1 to 10 loop 
-            for i in 1 to 512 loop -- one row
-                wait until rising_edge(swir_clock);
+            for i in 1 to 512 loop -- one row of 512 pixels
+                wait until rising_edge(clock);
                 swir_pxl_rdy <= '1';
                 swir_pixel <= to_unsigned(i, swir_pixel'length);
 
-                wait until falling_edge(swir_clock);
+                wait until rising_edge(clock);
                 swir_pxl_rdy <= '0';   
                 swir_pixel <= (others => '0');
+                
+                wait for swir_pxl_clocks;
             end loop;
-            wait for swir_clk_period * 25; -- time between rows
+            wait for swir_row_clocks; -- time between rows
         end loop;
         wait;
     end process swir_process;
 
     transmit_process: process is 
     begin
-        for i in 1 to 10 loop
+        for i in 1 to 1000 loop
             wait for clock_period * 170;
             row_req <= '1';
             wait until rising_edge(clock);
