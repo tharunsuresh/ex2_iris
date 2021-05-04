@@ -23,8 +23,9 @@ use work.vnir_base;
 
 package img_buffer_pkg is
     --Generating 1 buffer for each, allowing for storage of up to 1 row
-    constant NUM_SWIR_ROW_FIFO : integer := 2;
-    constant NUM_VNIR_ROW_FIFO : integer := 3;  -- needs 3 fifos minimum for the 3 sensors (red, blue and NIR)
+    --Do not change the number of fifos, as the logic to handle them is written for these numbers, ie. 1 fifo per row type
+    constant NUM_SWIR_ROW_FIFO : integer := 1;  
+    constant NUM_VNIR_ROW_FIFO : integer := 3;  -- needs 3 fifos for the 3 sensors (red, blue and NIR)
 
     constant FIFO_WORD_LENGTH : integer := 128;  
     constant FIFO_WORD_BYTES : integer := FIFO_WORD_LENGTH/8;  -- for command creator

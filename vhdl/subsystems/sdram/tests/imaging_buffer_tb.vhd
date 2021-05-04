@@ -101,7 +101,7 @@ begin
         end loop;
         wait for reset_period; 
 
-        for i in 1 to 10 loop
+        for i in 1 to 100 loop
             vnir_row_rdy <= vnir.ROW_RED;
             wait until rising_edge(clock);
             vnir_row_rdy <= vnir.ROW_NONE;
