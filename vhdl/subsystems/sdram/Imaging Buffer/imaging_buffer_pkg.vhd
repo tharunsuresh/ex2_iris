@@ -31,6 +31,7 @@ package img_buffer_pkg is
     constant FIFO_WORD_BYTES : integer := FIFO_WORD_LENGTH/8;  -- for command creator
 
     --Number of words in swir and vnir fifo
+    --Changing these requires changes to the VNIR and SWIR row fifo IPs. Specifically, change lpm_numwords
     constant VNIR_FIFO_DEPTH : integer := 160;  
     constant SWIR_FIFO_DEPTH : integer := 64;   
 

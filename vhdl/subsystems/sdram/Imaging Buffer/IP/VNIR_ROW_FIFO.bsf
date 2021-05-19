@@ -4,77 +4,77 @@ editor if you plan to continue editing the block that represents it in
 the Block Editor! File corruption is VERY likely to occur.
 */
 /*
-Copyright (C) 2017  Intel Corporation. All rights reserved.
+Copyright (C) 2020  Intel Corporation. All rights reserved.
 Your use of Intel Corporation's design tools, logic functions 
-and other software and tools, and its AMPP partner logic 
+and other software and tools, and any partner logic 
 functions, and any output files from any of the foregoing 
 (including device programming or simulation files), and any 
 associated documentation or information are expressly subject 
 to the terms and conditions of the Intel Program License 
 Subscription Agreement, the Intel Quartus Prime License Agreement,
-the Intel MegaCore Function License Agreement, or other 
-applicable license agreement, including, without limitation, 
-that your use is for the sole purpose of programming logic 
-devices manufactured by Intel and sold by Intel or its 
-authorized distributors.  Please refer to the applicable 
-agreement for further details.
+the Intel FPGA IP License Agreement, or other applicable license
+agreement, including, without limitation, that your use is for
+the sole purpose of programming logic devices manufactured by
+Intel and sold by Intel or its authorized distributors.  Please
+refer to the applicable agreement for further details, at
+https://fpgasoftware.intel.com/eula.
 */
 (header "symbol" (version "1.2"))
 (symbol
 	(rect 0 0 176 184)
-	(text "VNIR_ROW_FIFO" (rect 36 0 159 16)(font "Arial" (font_size 10)))
+	(text "VNIR_ROW_FIFO" (rect 16 0 139 16)(font "Arial" (font_size 10)))
 	(text "inst" (rect 8 168 25 180)(font "Arial" ))
 	(port
 		(pt 0 48)
 		(input)
 		(text "data[127..0]" (rect 0 0 67 14)(font "Arial" (font_size 8)))
-		(text "data[127..0]" (rect 20 41 75 54)(font "Arial" (font_size 8)))
+		(text "data[127..0]" (rect 20 40 87 55)(font "Arial" (font_size 8)))
 		(line (pt 0 48)(pt 16 48)(line_width 3))
 	)
 	(port
 		(pt 0 72)
 		(input)
 		(text "wrreq" (rect 0 0 35 14)(font "Arial" (font_size 8)))
-		(text "wrreq" (rect 20 65 48 78)(font "Arial" (font_size 8)))
+		(text "wrreq" (rect 20 64 49 79)(font "Arial" (font_size 8)))
 		(line (pt 0 72)(pt 16 72))
 	)
 	(port
 		(pt 0 88)
 		(input)
 		(text "rdreq" (rect 0 0 30 14)(font "Arial" (font_size 8)))
-		(text "rdreq" (rect 20 81 44 94)(font "Arial" (font_size 8)))
+		(text "rdreq" (rect 20 80 47 95)(font "Arial" (font_size 8)))
 		(line (pt 0 88)(pt 16 88))
 	)
 	(port
 		(pt 0 112)
 		(input)
 		(text "clock" (rect 0 0 29 14)(font "Arial" (font_size 8)))
-		(text "clock" (rect 20 105 43 118)(font "Arial" (font_size 8)))
+		(text "clock" (rect 20 104 49 119)(font "Arial" (font_size 8)))
 		(line (pt 0 112)(pt 16 112))
 	)
 	(port
 		(pt 0 136)
 		(input)
 		(text "aclr" (rect 0 0 21 14)(font "Arial" (font_size 8)))
-		(text "aclr" (rect 20 129 36 142)(font "Arial" (font_size 8)))
+		(text "aclr" (rect 20 128 40 143)(font "Arial" (font_size 8)))
 		(line (pt 0 136)(pt 16 136))
 	)
 	(port
 		(pt 176 48)
 		(output)
 		(text "q[127..0]" (rect 0 0 49 14)(font "Arial" (font_size 8)))
-		(text "q[127..0]" (rect 115 41 155 54)(font "Arial" (font_size 8)))
+		(text "q[127..0]" (rect 106 40 155 55)(font "Arial" (font_size 8)))
 		(line (pt 176 48)(pt 160 48)(line_width 3))
 	)
 	(port
 		(pt 176 72)
 		(output)
 		(text "empty" (rect 0 0 34 14)(font "Arial" (font_size 8)))
-		(text "empty" (rect 128 65 155 78)(font "Arial" (font_size 8)))
+		(text "empty" (rect 121 64 155 79)(font "Arial" (font_size 8)))
 		(line (pt 176 72)(pt 160 72))
 	)
 	(drawing
-		(text "128 bits x 256 words" (rect 73 133 230 277)(font "Arial" ))
+		(text "128 bits x 256 words" (rect 46 130 203 274)(font "Arial" ))
 		(line (pt 16 124)(pt 160 124))
 		(line (pt 16 32)(pt 160 32))
 		(line (pt 160 32)(pt 160 169))
